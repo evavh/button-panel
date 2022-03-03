@@ -1,0 +1,25 @@
+[package]
+authors = ["Eva van houten, David Kleingeld"]
+edition = "2021"
+name = "panel"
+version = "0.1.0"
+resolver = "2"
+
+[dependencies]
+embassy = { version = "0.1.0", git = "https://github.com/embassy-rs/embassy", rev = "35636953", features = ["defmt", "unstable-traits"] }
+
+embassy-stm32 = { version = "0.1.0", git = "https://github.com/embassy-rs/embassy", rev = "35636953", features = ["nightly", "defmt", "stm32f401cc", "unstable-pac", "memory-x", "time-driver-any", "exti", "usb-otg"]  }
+
+defmt = "0.3"
+defmt-rtt = "0.3"
+
+cortex-m = "0.7.3"
+cortex-m-rt = "0.7.0"
+embedded-hal = "0.2.6"
+panic-probe = { version = "0.3", features = ["print-defmt"] }
+futures = { version = "0.3.17", default-features = false, features = ["async-await"] }
+heapless = { version = "0.7.5", default-features = false }
+nb = "1.0.0"
+
+usb-device = "0.2"
+usbd-serial = "0.1.1"
