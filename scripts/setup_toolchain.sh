@@ -24,8 +24,8 @@ function install_tools {
 
 # add udev rules if they do not yet exist
 function fix_udev_rules {
-	sudo groupadd dailout
-	sudo usermod -a -G dailout $USER
+	sudo groupadd dialout
+	sudo usermod -a -G dialout $USER
 
 	if [ ! -f "${UDEV_FILE}" ]; then
 		echo "${UDEV_RULE1}" | sudo tee -a $UDEV_FILE > /dev/null
