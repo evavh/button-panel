@@ -22,8 +22,6 @@ use embassy_stm32::gpio::{Input, Level, Output, Pull, Speed};
 // global logger
 use panic_probe as _;
 
-mod usb;
-
 use core::sync::atomic::{AtomicUsize, Ordering};
 defmt::timestamp! {"{=u64}", {
         static COUNT: AtomicUsize = AtomicUsize::new(0);
