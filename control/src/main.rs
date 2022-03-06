@@ -1,4 +1,7 @@
+use std::fs::File;
+use std::io::Read;
 use std::path::{Path, PathBuf};
+use std::time::Instant;
 
 use clap::Parser;
 use color_eyre::eyre::Context;
@@ -18,41 +21,6 @@ fn setup_udev_access() -> Result<()> {
     std::fs::write(path, rule)?;
     Ok(())
 }
-
-// fn get_tty() -> Result<()> {
-// use std::time::Duration;
-// use rusb::{Device, DeviceDescriptor, UsbContext};
-//     const MANUFACTURER: &str = "dvdva";
-//     const PRODUCT: &str = "desk button panel";
-
-//     for device in rusb::devices().unwrap().iter() {
-//         let desc = device.device_descriptor().unwrap();
-//         if desc.vendor_id() != 0x0424 && desc.product_id() != 0x274e {
-//             continue;
-//         }
-
-//         let handle = match device.open() {
-//             Err(rusb::Error::Access) => {
-//                 return Err(eyre!("Could not open usb device, is udev rule present?")
-//                     .suggestion("run control with --setup to install udev rule")
-//                     .suggestion("run control as superuser"))
-//             }
-//             Err(e) => return Err(e).wrap_err("Could not open usb device, is udev rule present?"),
-//             Ok(h) => h,
-//         };
-
-//         let timeout = Duration::from_secs(1);
-//         let lang = handle.read_languages(timeout)?.pop().unwrap();
-
-//         let manufacturer = handle.read_manufacturer_string(lang, &desc, timeout)?;
-//         let product = handle.read_product_string(lang, &desc, timeout)?;
-
-//         if manufacturer == MANUFACTURER && product == PRODUCT {
-
-//         }
-//     }
-//     Err(eyre!("Device not {PRODUCT} found"))
-// }
 
 fn get_tty_path() -> Result<PathBuf> {
     const MANUFACTURER: &str = "dvdva";
@@ -79,7 +47,8 @@ fn get_tty_path() -> Result<PathBuf> {
         }
     }
     let device = device.ok_or_else(|| {
-        eyre!("No device found for '{MANUFACTURER}, {PRODUCT}'").suggestion("Connect the button panel")
+        eyre!("No device found for '{MANUFACTURER}, {PRODUCT}'")
+            .suggestion("Connect the button panel")
     })?;
 
     std::fs::canonicalize(device).wrap_err("Could not resolve tty path")
@@ -93,6 +62,29 @@ struct Args {
     setup: bool,
 }
 
+struct Panel {
+    file: File,
+}
+
+impl Panel {
+    fn try_connect() -> Result<Self> {
+        let path = get_tty_path()?;
+        let file = File::open(path).wrap_err("Error opening connection")?;
+        Ok(Panel { file })
+    }
+
+    fn recv(&mut self) -> Result<String> {
+        let mut buf = [0u8; 29];
+        self.file
+            .read_exact(&mut buf)
+            .wrap_err("Recieved invalid message")
+            .with_note(|| "Is the panel still connected?")?;
+        let bytes = &buf[..buf.len()-1];
+        let res = String::from_utf8(bytes.to_vec())?;
+        Ok(res)
+    }
+}
+
 fn main() -> Result<()> {
     color_eyre::install()?;
     let args = Args::parse();
@@ -102,7 +94,14 @@ fn main() -> Result<()> {
         return Ok(());
     }
 
-    let path = get_tty_path()?;
-    dbg!(path);
+    let mut panel = Panel::try_connect().wrap_err("Could not connect to Panel")?;
+
+    let start = Instant::now();
+    for _ in 0..10_000 {
+        let msg = panel.recv()?;
+        dbg!();
+    }
+    dbg!(start.elapsed() / 10_000);
+
     Ok(())
 }
