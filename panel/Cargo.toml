@@ -6,9 +6,9 @@ version = "0.1.0"
 resolver = "2"
 
 [dependencies]
-embassy = { version = "0.1.0", git = "https://github.com/embassy-rs/embassy", rev = "35636953", features = ["defmt", "unstable-traits"] }
+embassy = { version = "0.1.0", git = "https://github.com/embassy-rs/embassy", rev = "9735c38", features = ["defmt", "unstable-traits"] }
 
-embassy-stm32 = { version = "0.1.0", git = "https://github.com/embassy-rs/embassy", rev = "35636953", features = ["nightly", "defmt", "stm32f401cc", "unstable-pac", "memory-x", "time-driver-any", "exti", "usb-otg"]  }
+embassy-stm32 = { version = "0.1.0", git = "https://github.com/embassy-rs/embassy", rev = "9735c38", features = ["nightly", "defmt", "stm32f401cc", "unstable-pac", "memory-x", "time-driver-any", "exti", "usb-otg"]  }
 
 defmt = "0.3"
 defmt-rtt = "0.3"

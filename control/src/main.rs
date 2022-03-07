@@ -97,11 +97,10 @@ fn main() -> Result<()> {
     let mut panel = Panel::try_connect().wrap_err("Could not connect to Panel")?;
 
     let start = Instant::now();
-    for _ in 0..10_000 {
+    for _ in 0..100_000 {
         let msg = panel.recv()?;
-        dbg!();
     }
-    dbg!(start.elapsed() / 10_000);
+    dbg!(start.elapsed() / 100_000);
 
     Ok(())
 }

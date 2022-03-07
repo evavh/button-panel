@@ -78,6 +78,5 @@ async fn main(_spawner: Spawner, p: Peripherals) -> ! {
         unwrap!(writer.write_all(&buf).await);
         unwrap!(writer.write_all(b"\r\n").await);
         unwrap!(writer.flush().await);
-        Timer::after(Duration::from_millis(200)).await;
     }
 }
