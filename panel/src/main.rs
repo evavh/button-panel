@@ -5,7 +5,9 @@
 
 use defmt::*;
 use defmt_rtt as _;
-use futures::{join, select_biased};
+use embassy::time::Instant;
+use embassy::util::Unborrow;
+use futures::join;
 // global logger
 use panic_probe as _;
 
@@ -25,34 +27,40 @@ use embassy_stm32::exti::ExtiInput;
 use embassy_stm32::gpio::{Input, Pin, Pull};
 use embassy_stm32::Peripherals;
 
+use protocol::{Button, ButtonPress};
+
 #[embassy::main]
 async fn main(_spawner: Spawner, p: Peripherals) -> ! {
-    info!("Hello World!");
-
-    // let top_middle = Input::new(p.PB13, Pull::Down);
-    // let top_middle = ExtiInput::new(top_middle, p.EXTI13);
-    // let bottom_middle = Input::new(p.PB0, Pull::Down);
-    // let bottom_middle = ExtiInput::new(bottom_middle, p.EXTI0);
-
     info!("Press a button...");
 
-    let a = wait_for_button(p.PB13, p.EXTI13, "top middle");
-    let b = wait_for_button(p.PB0, p.EXTI0, "bottom middle");
-    join!(a, b);
+    let a = wait_for_button(p.PB12, p.EXTI12, Button::TopLeft);
+    let b = wait_for_button(p.PB13, p.EXTI13, Button::TopMiddle);
+    let c = wait_for_button(p.PB1, p.EXTI1, Button::TopRight);
+    let d = wait_for_button(p.PC15, p.EXTI15, Button::BottomLeft);
+    let e = wait_for_button(p.PB0, p.EXTI0, Button::BottomMiddle);
+    let f = wait_for_button(p.PC14, p.EXTI14, Button::BottomRight);
+    join!(a, b, c, d, e, f);
 }
 
 async fn wait_for_button<'d, T: Pin>(
     pin: impl Unborrow<Target = T> + 'd,
     ch: impl Unborrow<Target = T::ExtiChannel> + 'd,
-    name: &str,
+    name: protocol::Button,
 ) {
     let button = Input::new(pin, Pull::Down);
-    let button = ExtiInput::new(button, ch);
+    let mut button = ExtiInput::new(button, ch);
 
     loop {
         button.wait_for_rising_edge().await;
-        info!("Pressed {}", name);
+        let press_time = Instant::now();
         button.wait_for_falling_edge().await;
-        info!("Released {}", name);
+
+        let button_press = match press_time.elapsed().as_millis() {
+            0..=50 => continue,
+            51..=800 => ButtonPress::Short(name),
+            801..=2000 => ButtonPress::Long(name),
+            _ => continue,
+        };
+        info!("Press: {}", button_press)
     }
 }
