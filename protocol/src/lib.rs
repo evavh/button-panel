@@ -1,8 +1,18 @@
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn it_works() {
-        let result = 2 + 2;
-        assert_eq!(result, 4);
-    }
+#![no_std]
+use defmt::*;
+
+#[derive(Format, Clone, Copy)]
+pub enum Button {
+    TopLeft,
+    TopMiddle,
+    TopRight,
+    BottomLeft,
+    BottomMiddle,
+    BottomRight,
+}
+
+#[derive(Format, Clone, Copy)]
+pub enum ButtonPress {
+    Short(Button),
+    Long(Button),
 }
