@@ -51,9 +51,9 @@ async fn wait_for_button<'d, T: Pin>(
     let mut button = ExtiInput::new(button, ch);
 
     loop {
-        button.wait_for_rising_edge().await;
+        button.wait_for_high().await;
         let press_time = Instant::now();
-        button.wait_for_falling_edge().await;
+        button.wait_for_low().await;
 
         let button_press = match press_time.elapsed().as_millis() {
             0..=50 => continue,
