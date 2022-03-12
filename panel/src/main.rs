@@ -5,20 +5,24 @@
 use defmt::{info, unwrap};
 use defmt_rtt as _; // global logger
 use embassy::interrupt::InterruptExt;
-use embassy::time::{Duration, Timer};
+use embassy::time::{Duration, Timer, with_timeout};
+use embassy_stm32::interrupt::OTG_FS;
+use embassy_stm32::peripherals::USB_OTG_FS;
 use futures::pin_mut;
 use panic_probe as _; // print out panic messages
 
 use embassy::executor::Spawner;
-use embassy::io::AsyncWriteExt;
-use embassy_stm32::usb_otg::{
-    State, Usb, UsbBus, UsbOtg, UsbSerial,
-};
+use embassy::io::{AsyncBufReadExt, AsyncWriteExt};
+use embassy_stm32::usb_otg::{State, Usb, UsbBus, UsbOtg, UsbSerial, ReadInterface, Index0, ClassSet1};
 use embassy_stm32::{interrupt, time::Hertz, Config, Peripherals};
 use usb_device::device::{UsbDeviceBuilder, UsbVidPid};
 
+use embassy_stm32::gpio::{Input, Level, Output, Pull, Speed};
+
 // global logger
 use panic_probe as _;
+
+mod usb;
 
 use core::sync::atomic::{AtomicUsize, Ordering};
 defmt::timestamp! {"{=u64}", {
@@ -43,14 +47,14 @@ pub use defmt::*;
 
 #[embassy::main(config = "config()")]
 async fn main(_spawner: Spawner, p: Peripherals) -> ! {
-    let mut rx_buffer = [0u8; 128];
-    let mut tx_buffer = [0u8; 128];
+    let mut rx_buffer = [0u8; 64];
+    let mut tx_buffer = [0u8; 66];
     let peri = UsbOtg::new_fs(p.USB_OTG_FS, p.PA12, p.PA11);
     let usb_bus = UsbBus::new(peri, unsafe { &mut EP_MEMORY });
 
     let serial = UsbSerial::new(&usb_bus, &mut rx_buffer, &mut tx_buffer);
 
-    // usb vendor id and product id for which linux kernel
+    // usb vendor id and product id for which linux kernel 
     // does not do strange things
     let device = UsbDeviceBuilder::new(&usb_bus, UsbVidPid(0x0424, 0x274e))
         .manufacturer("dvdva")
@@ -66,18 +70,27 @@ async fn main(_spawner: Spawner, p: Peripherals) -> ! {
     let usb = unsafe { Usb::new(&mut state, device, serial, irq) };
     pin_mut!(usb);
 
-    let (_reader, mut writer) = usb.as_ref().take_serial_0();
+    let (mut reader, mut writer) = usb.as_ref().take_serial_0();
 
     info!("usb initialized!");
 
     loop {
-        trace!("sending text");
-        let msg = "This is a fixed size message";
-        let mut buf = [0u8; 28];
-        buf[..28].copy_from_slice(msg.as_bytes());
-        unwrap!(writer.write_all(&buf).await);
-        unwrap!(writer.write_all(b"\r\n").await);
+        info!("sending text");
+        unwrap!(writer.write_all(b"hi hoi hoi hoi\r\n").await);
         unwrap!(writer.flush().await);
-        Timer::after(Duration::from_millis(200)).await;
+        Timer::after(Duration::from_millis(500)).await;
+
+        let fut = read_byte(&mut reader);
+        match with_timeout(Duration::from_millis(100), fut).await{
+            Ok(b) => info!("read byte: {}", b),
+            Err(_) => (),
+        }
     }
+}
+
+// type Reader<'a, 'b, 'c> = ReadInterface<'a, 'b, 'c, Index0, UsbBus<UsbOtg<'a, USB_OTG_FS>>, ClassSet1<UsbBus<UsbOtg<'a, USB_OTG_FS>>, UsbSerial<'a, 'b, UsbBus<UsbOtg<'c, USB_OTG_FS>>>>, OTG_FS>;
+
+async fn read_byte(reader: &mut (impl AsyncBufReadExt + core::marker::Unpin)) -> u8 {
+    let char = unwrap!(reader.read_byte().await);
+    char
 }
