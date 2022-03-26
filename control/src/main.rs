@@ -1,11 +1,15 @@
 use std::fs::File;
 use std::io::Read;
 use std::path::{Path, PathBuf};
-use std::time::Instant;
 
 use clap::Parser;
 use color_eyre::eyre::Context;
 use color_eyre::{eyre::eyre, Help, Result};
+
+use protocol::{Button, ButtonPress};
+
+use crate::mpd::Mpd;
+mod mpd;
 
 fn setup_udev_access() -> Result<()> {
     let path = Path::new("/etc/udev/rules.d/70-dvdva.rules");
@@ -66,6 +70,8 @@ struct Panel {
     file: File,
 }
 
+struct MockPanel {}
+
 impl Panel {
     fn try_connect() -> Result<Self> {
         let path = get_tty_path()?;
@@ -79,9 +85,18 @@ impl Panel {
             .read_exact(&mut buf)
             .wrap_err("Recieved invalid message")
             .with_note(|| "Is the panel still connected?")?;
-        let bytes = &buf[..buf.len()-1];
-        let res = String::from_utf8(bytes.to_vec())?;
-        Ok(res)
+        let bytes = &buf[..buf.len() - 1];
+        todo!("Deserialize to ButtonPress enum")
+    }
+}
+
+impl MockPanel {
+    fn try_connect() -> Result<Self> {
+        Ok(MockPanel {})
+    }
+
+    fn recv(&mut self) -> Result<ButtonPress> {
+        Ok(ButtonPress::Short(Button::TopMiddle))
     }
 }
 
@@ -94,14 +109,19 @@ fn main() -> Result<()> {
         return Ok(());
     }
 
-    let mut panel = Panel::try_connect().wrap_err("Could not connect to Panel")?;
+    let mut mpd = Mpd::connect("192.168.1.101:6600");
+    let mut panel = MockPanel::try_connect().wrap_err("Could not connect to Panel")?;
 
-    let start = Instant::now();
-    for _ in 0..10_000 {
-        let msg = panel.recv()?;
-        dbg!();
+    let button_press = panel.recv()?;
+
+    use protocol::{Button::*, ButtonPress::*};
+    match button_press {
+        Short(TopMiddle) => {
+            mpd.toggle();
+        }
+        Long(TopMiddle) => println!("Top middle long pressed"),
+        _ => todo!("Some other buttonpress"),
     }
-    dbg!(start.elapsed() / 10_000);
 
     Ok(())
 }
