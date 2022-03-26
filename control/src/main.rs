@@ -1,6 +1,8 @@
+use core::time;
 use std::fs::File;
 use std::io::Read;
 use std::path::{Path, PathBuf};
+use std::thread;
 
 use clap::Parser;
 use color_eyre::eyre::Context;
@@ -70,8 +72,6 @@ struct Panel {
     file: File,
 }
 
-struct MockPanel {}
-
 impl Panel {
     fn try_connect() -> Result<Self> {
         let path = get_tty_path()?;
@@ -90,13 +90,25 @@ impl Panel {
     }
 }
 
+struct MockPanel {
+    actions: Vec<ButtonPress>,
+}
+
 impl MockPanel {
     fn try_connect() -> Result<Self> {
-        Ok(MockPanel {})
+        let mut actions = vec![
+            ButtonPress::Short(Button::TopMiddle), //play
+            ButtonPress::Short(Button::TopRight),  //next
+            ButtonPress::Long(Button::TopMiddle),  //Music to Book
+            ButtonPress::Short(Button::TopRight),  //skip
+        ];
+        actions.reverse();
+        Ok(MockPanel { actions })
     }
 
     fn recv(&mut self) -> Result<ButtonPress> {
-        Ok(ButtonPress::Short(Button::TopMiddle))
+        thread::sleep(time::Duration::from_secs(2));
+        Ok(self.actions.pop().unwrap())
     }
 }
 
@@ -111,17 +123,27 @@ fn main() -> Result<()> {
 
     let mut mpd = Mpd::connect("192.168.1.101:6600");
     let mut panel = MockPanel::try_connect().wrap_err("Could not connect to Panel")?;
+    let mut audio_mode = mpd::AudioMode::Music;
 
-    let button_press = panel.recv()?;
+    loop {
+        let button_press = panel.recv()?;
 
-    use protocol::{Button::*, ButtonPress::*};
-    match button_press {
-        Short(TopMiddle) => {
-            mpd.toggle();
+        use mpd::AudioMode::*;
+        use protocol::{Button::*, ButtonPress::*};
+        match (&audio_mode, button_press) {
+            (Music | Meditation, Short(TopLeft)) => mpd.previous(),
+            (Book | Podcast, Short(TopLeft)) => mpd.rewind(),
+            (Music | Meditation, Short(TopRight)) => mpd.next(),
+            (Book | Podcast, Short(TopRight)) => mpd.skip(),
+            (_, Short(TopMiddle)) => {
+                mpd.toggle();
+            }
+            (_, Long(TopMiddle)) => {
+                audio_mode.next();
+                dbg!(&audio_mode);
+            }
+            _ => todo!("Some other buttonpress"),
         }
-        Long(TopMiddle) => println!("Top middle long pressed"),
-        _ => todo!("Some other buttonpress"),
     }
-
     Ok(())
 }
