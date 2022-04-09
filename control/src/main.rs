@@ -98,9 +98,9 @@ impl MockPanel {
     fn try_connect() -> Result<Self> {
         let mut actions = vec![
             ButtonPress::Short(Button::TopMiddle), //play
-            ButtonPress::Short(Button::TopRight),  //next
-            ButtonPress::Long(Button::TopMiddle),  //Music to Book
-            ButtonPress::Short(Button::TopRight),  //skip
+            // ButtonPress::Short(Button::TopRight),  //next
+            ButtonPress::Long(Button::TopMiddle), //Music to Book
+                                                  // ButtonPress::Short(Button::TopRight),  //skip
         ];
         actions.reverse();
         Ok(MockPanel { actions })
@@ -139,11 +139,12 @@ fn main() -> Result<()> {
                 mpd.toggle();
             }
             (_, Long(TopMiddle)) => {
+                mpd.store_position();
                 audio_mode.next();
+                mpd.switch_to_mode(&audio_mode);
                 dbg!(&audio_mode);
             }
             _ => todo!("Some other buttonpress"),
         }
     }
-    Ok(())
 }

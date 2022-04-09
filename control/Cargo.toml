@@ -11,5 +11,6 @@ color-eyre = "0.6"
 rusb = "0.9"
 sudo = "0.6"
 mpdrs = { git = "https://github.com/SimonPersson/mpdrs", rev = "785e54" }
+sled = "0.34"
 
 protocol = { path = "../protocol" }
