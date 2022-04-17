@@ -123,26 +123,25 @@ fn main() -> Result<()> {
 
     let mut mpd = Mpd::connect("192.168.1.101:6600");
     let mut panel = MockPanel::try_connect().wrap_err("Could not connect to Panel")?;
-    let mut audio_mode = mpd::AudioMode::Music;
 
     loop {
         let button_press = panel.recv()?;
 
         use mpd::AudioMode::*;
         use protocol::{Button::*, ButtonPress::*};
-        match (&audio_mode, button_press) {
+        match (&mpd.mode, button_press) {
             (Music | Meditation, Short(TopLeft)) => mpd.previous(),
             (Book | Podcast, Short(TopLeft)) => mpd.rewind(),
             (Music | Meditation, Short(TopRight)) => mpd.next(),
             (Book | Podcast, Short(TopRight)) => mpd.skip(),
             (_, Short(TopMiddle)) => {
-                mpd.toggle();
+                mpd.toggle_playback();
             }
             (_, Long(TopMiddle)) => {
                 mpd.store_position();
-                audio_mode.next();
-                mpd.switch_to_mode(&audio_mode);
-                dbg!(&audio_mode);
+                mpd.mode.next();
+                mpd.switch_to_mode();
+                dbg!(&mpd.mode);
             }
             _ => todo!("Some other buttonpress"),
         }
