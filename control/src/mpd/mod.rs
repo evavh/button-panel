@@ -58,7 +58,7 @@ impl Mpd {
         mpd
     }
 
-    pub(crate) fn rescan(&mut self) {
+    fn rescan(&mut self) {
         let mut watcher = mpdrs::Client::connect(&self.ip).unwrap();
         let thread_join_handle = thread::spawn(move || {
             watcher.wait(&[mpdrs::idle::Subsystem::Update]).unwrap();
@@ -67,12 +67,12 @@ impl Mpd {
         thread_join_handle.join().unwrap();
     }
 
-    pub(crate) fn is_playing(&mut self) -> bool {
+    fn is_playing(&mut self) -> bool {
         let playback_state = self.client.status().unwrap().state;
         playback_state == Play
     }
 
-    pub(crate) fn get_playlists(&mut self) -> Vec<Playlist> {
+    fn get_playlists(&mut self) -> Vec<Playlist> {
         self.client.playlists().unwrap()
     }
 
@@ -90,6 +90,7 @@ impl Mpd {
             .as_secs()
             .try_into()
             .unwrap();
+        self.client.play().unwrap();
         self.client.rewind(position.saturating_sub(15)).unwrap();
     }
 
@@ -103,14 +104,17 @@ impl Mpd {
             .as_secs()
             .try_into()
             .unwrap();
+        self.client.play().unwrap();
         self.client.rewind(position + 15).unwrap();
     }
 
     pub(crate) fn previous(&mut self) {
+        self.client.play().unwrap();
         self.client.prev().unwrap();
     }
 
     pub(crate) fn next(&mut self) {
+        self.client.play().unwrap();
         self.client.next().unwrap();
     }
 
@@ -122,28 +126,39 @@ impl Mpd {
         todo!()
     }
 
-    pub(crate) fn next_mode(&self) {
-        /* self.store_position();
+    pub(crate) fn next_mode(&mut self) {
+        self.store_position();
         self.mode.next();
-        self.load_mode_playlist_pos();
-        dbg!(&mpd.mode); */
-        todo!();
-    }
 
-    fn load_mode_playlist_pos(&mut self) {
-        let playlist_name = self.playlist_name_for_mode().unwrap();
-        self.load_playlist(&playlist_name);
-        if let Some(position) = self.database.fetch_position(playlist_name) {
-            self.client
-                .seek_id(position.song_id, position.elapsed)
-                .unwrap();
-            dbg!("Loaded {}", position);
+        let new_playlist_name = self.database.fetch_playlist_name(&self.mode);
+        let new_playlist_name = if let Some(playlist_name) = new_playlist_name {
+            playlist_name
         } else {
-            self.client.seek(0, 0).unwrap();
-            dbg!("No position found in db");
+            let playlist_name = self.first_playlist_for_mode().unwrap();
+            self.database.store_playlist_name(&self.mode, &playlist_name);
+            playlist_name
+        };
+        self.load_playlist(&new_playlist_name);
+
+        let new_position = self.database.fetch_position(&new_playlist_name);
+        if let Some(new_position) = new_position {
+            self.load_position(new_position);
+        } else {
+            self.seek_to_beginning();
         }
+
+        dbg!(&self.mode);
     }
 
+    fn first_playlist_for_mode(&mut self) -> Option<String> {
+        let playlists = self.get_playlists();
+        for playlist in playlists {
+            if playlist.name.starts_with(self.mode.to_prefix()) {
+                return dbg!(Some(playlist.name));
+            }
+        }
+        None
+    }
     fn store_position(&mut self) {
         let position = db::Position {
             song_id: self.client.status().unwrap().song.unwrap().id,
@@ -160,18 +175,19 @@ impl Mpd {
         self.database.store_position(&self.mode, position);
     }
 
-    fn playlist_name_for_mode(&mut self) -> Option<String> {
-        let playlists = self.get_playlists();
-        for playlist in playlists {
-            if playlist.name.starts_with(self.mode.to_prefix()) {
-                return dbg!(Some(playlist.name));
-            }
-        }
-        None
-    }
-
     fn load_playlist(&mut self, playlist_name: &String) {
         self.client.clear().unwrap();
         self.client.load(&playlist_name, ..).unwrap();
+    }
+
+    fn load_position(&mut self, position: db::Position) {
+        dbg!(self.client.queue().unwrap());
+        self.client
+            .seek_id(position.song_id, position.elapsed)
+            .unwrap();
+    }
+
+    fn seek_to_beginning(&mut self) {
+        self.client.seek(0, 0).unwrap();
     }
 }
