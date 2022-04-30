@@ -4,6 +4,25 @@ use std::time::Duration;
 
 use super::AudioMode;
 
+#[derive(Debug)]
+pub(crate) struct Position {
+    pub(crate) song_id: u32,
+    pub(crate) elapsed: u32,
+}
+
+impl Position {
+    fn to_bytes(self) -> Vec<u8> {
+        [self.song_id.to_ne_bytes(), self.elapsed.to_ne_bytes()].concat()
+    }
+
+    fn from_bytes(bytes: &[u8]) -> Self {
+        Position {
+            song_id: u32::from_ne_bytes(bytes[..4].try_into().unwrap()),
+            elapsed: u32::from_ne_bytes(bytes[4..].try_into().unwrap()),
+        }
+    }
+}
+
 pub(crate) struct Db {
     database: sled::Db,
 }
@@ -15,7 +34,7 @@ impl Db {
         }
     }
 
-    fn current_playlist_name(&self, mode: &AudioMode) -> Option<String> {
+    fn fetch_playlist_name(&self, mode: &AudioMode) -> Option<String> {
         let key = mode.to_prefix().to_owned() + "cur_playlist";
         if let Some(data) = self.database.get(key.as_bytes()).unwrap() {
             Some(String::from_utf8(data.to_vec()).unwrap())
@@ -24,37 +43,28 @@ impl Db {
         }
     }
 
-    fn store_current_playlist(&self, mode: AudioMode, playlist_name: String) {
+    fn store_playlist_name(&self, mode: AudioMode, playlist_name: String) {
         let key = mode.to_prefix().to_owned() + "cur_playlist";
         self.database
             .insert(key.as_bytes(), playlist_name.as_bytes())
             .unwrap();
     }
 
-    pub(crate) fn store_position(&mut self, mode: &AudioMode, position: Option<Duration>) {
-        if let Some(current_playlist_name) = self.current_playlist_name(mode) {
-            if let Some(position) = position {
-                let key = current_playlist_name.to_owned() + "_position";
-                self.database
-                    .insert(key.as_bytes(), &position.as_secs().to_ne_bytes())
-                    .unwrap();
-            }
+    pub(crate) fn store_position(&mut self, mode: &AudioMode, position: Position) {
+        if let Some(current_playlist_name) = self.fetch_playlist_name(mode) {
+            let key = current_playlist_name.to_owned() + "_position";
+            self.database
+                .insert(key.as_bytes(), position.to_bytes())
+                .unwrap();
         }
     }
 
-    pub(crate) fn fetch_playlist_state(&self, playlist: Playlist) -> Option<(u32, u32)> {
-        fn to_u32(buffer: IVec) -> u32 {
-            u32::from_ne_bytes(buffer.as_ref().try_into().unwrap())
-        }
-
-        let key = playlist.name.clone() + "song_id";
-        let song_id = self.database.get(key.as_bytes()).unwrap();
-        let key = playlist.name + "position";
-        let position = self.database.get(key.as_bytes()).unwrap();
-        match (song_id, position) {
-            (Some(id), Some(pos)) => Some((to_u32(id), to_u32(pos))),
-            (Some(id), None) => Some((to_u32(id), 0)),
-            (None, _) => None,
-        }
+    pub(crate) fn fetch_position(&self, playlist_name: String) -> Option<Position> {
+        todo!("Change to mode?");
+        let key = playlist_name + "_position";
+        self.database
+            .get(key.as_bytes())
+            .unwrap()
+            .map(|buffer| Position::from_bytes(buffer.as_ref()))
     }
 }

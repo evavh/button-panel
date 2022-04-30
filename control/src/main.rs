@@ -97,18 +97,20 @@ struct MockPanel {
 impl MockPanel {
     fn try_connect() -> Result<Self> {
         let mut actions = vec![
-            ButtonPress::Short(Button::TopMiddle), //play
-            // ButtonPress::Short(Button::TopRight),  //next
-            ButtonPress::Long(Button::TopMiddle), //Music to Book
-                                                  // ButtonPress::Short(Button::TopRight),  //skip
+            ButtonPress::Short(Button::TopMiddle), //play (Music)
+            ButtonPress::Short(Button::TopRight),  //next (Music)
+            ButtonPress::Long(Button::TopMiddle),  //Music to Book
+            ButtonPress::Long(Button::TopMiddle),  //Book to Podcast
+            ButtonPress::Long(Button::TopMiddle),  //Podcast to Meditation
+            ButtonPress::Long(Button::TopMiddle),  //Meditation to Music
         ];
         actions.reverse();
         Ok(MockPanel { actions })
     }
 
-    fn recv(&mut self) -> Result<ButtonPress> {
-        thread::sleep(time::Duration::from_secs(2));
-        Ok(self.actions.pop().unwrap())
+    fn recv(&mut self) -> Option<ButtonPress> {
+        thread::sleep(time::Duration::from_secs(3));
+        self.actions.pop()
     }
 }
 
@@ -124,26 +126,23 @@ fn main() -> Result<()> {
     let mut mpd = Mpd::connect("192.168.1.101:6600");
     let mut panel = MockPanel::try_connect().wrap_err("Could not connect to Panel")?;
 
-    loop {
-        let button_press = panel.recv()?;
-
+    while let Some(button_press) = panel.recv() {
         use mpd::AudioMode::*;
         use protocol::{Button::*, ButtonPress::*};
         match (&mpd.mode, button_press) {
             (Music | Meditation, Short(TopLeft)) => mpd.previous(),
             (Book | Podcast, Short(TopLeft)) => mpd.rewind(),
+
             (Music | Meditation, Short(TopRight)) => mpd.next(),
             (Book | Podcast, Short(TopRight)) => mpd.skip(),
-            (_, Short(TopMiddle)) => {
-                mpd.toggle_playback();
-            }
-            (_, Long(TopMiddle)) => {
-                mpd.store_position();
-                mpd.mode.next();
-                mpd.switch_to_mode();
-                dbg!(&mpd.mode);
-            }
-            _ => todo!("Some other buttonpress"),
+
+            (_, Short(TopMiddle)) => mpd.toggle_playback(),
+
+            (_, Long(TopLeft)) => mpd.prev_playlist(),
+            (_, Long(TopRight)) => mpd.next_playlist(),
+            (_, Long(TopMiddle)) => mpd.next_mode(),
+            _ => todo!("some other buttonpress"),
         }
     }
+    Ok(())
 }
