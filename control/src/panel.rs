@@ -73,8 +73,11 @@ impl MockPanel {
             ButtonPress::Short(Button::TopMiddle), //play (Music)
             ButtonPress::Short(Button::TopRight),  //next (Music)
             ButtonPress::Long(Button::TopMiddle),  //Music to Book
+            ButtonPress::Short(Button::TopRight),  //next (Book)
             ButtonPress::Long(Button::TopMiddle),  //Book to Podcast
+            ButtonPress::Short(Button::TopRight),  //next (Podcast)
             ButtonPress::Long(Button::TopMiddle),  //Podcast to Meditation
+            ButtonPress::Short(Button::TopRight),  //next (Meditation)
             ButtonPress::Long(Button::TopMiddle),  //Meditation to Music
         ];
         actions.reverse();

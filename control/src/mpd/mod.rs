@@ -161,7 +161,7 @@ impl Mpd {
     }
     fn store_position(&mut self) {
         let position = db::Position {
-            song_id: self.client.status().unwrap().song.unwrap().id,
+            pos_in_pl: self.client.status().unwrap().song.unwrap().pos,
             elapsed: self
                 .client
                 .status()
@@ -181,9 +181,9 @@ impl Mpd {
     }
 
     fn load_position(&mut self, position: db::Position) {
-        dbg!(self.client.queue().unwrap());
+        self.client.queue().unwrap();
         self.client
-            .seek_id(position.song_id, position.elapsed)
+            .seek(position.pos_in_pl, position.elapsed)
             .unwrap();
     }
 
