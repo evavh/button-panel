@@ -160,18 +160,19 @@ impl Mpd {
         None
     }
     fn store_position(&mut self) {
-        let position = db::Position {
-            pos_in_pl: self.client.status().unwrap().song.unwrap().pos,
-            elapsed: self
-                .client
-                .status()
-                .unwrap()
-                .elapsed
-                .unwrap()
-                .as_secs()
-                .try_into()
-                .unwrap(),
+        let pos_in_pl = if let Some(song) = dbg!(self.client.status().unwrap().song) {
+            song.pos
+        } else {
+            0
         };
+
+        let elapsed = if let Some(elapsed) = dbg!(self.client.status().unwrap().elapsed) {
+            elapsed.as_secs().try_into().unwrap()
+        } else {
+            0
+        };
+
+        let position = db::Position { pos_in_pl, elapsed };
         self.database.store_position(&self.mode, position);
     }
 
