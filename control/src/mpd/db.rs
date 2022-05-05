@@ -1,7 +1,3 @@
-use mpdrs::Playlist;
-use sled::IVec;
-use std::time::Duration;
-
 use super::AudioMode;
 
 #[derive(Debug)]
@@ -11,7 +7,7 @@ pub(crate) struct Position {
 }
 
 impl Position {
-    fn to_bytes(self) -> Vec<u8> {
+    fn to_bytes(&self) -> Vec<u8> {
         [self.song_id.to_ne_bytes(), self.elapsed.to_ne_bytes()].concat()
     }
 
@@ -37,11 +33,10 @@ impl Db {
     pub(crate) fn fetch_playlist_name(&self, mode: &AudioMode) -> Option<String> {
         let key = mode.to_prefix().to_owned() + "cur_playlist";
         println!("Fetching playlist_name with key {:?}", key);
-        if let Some(data) = self.database.get(key.as_bytes()).unwrap() {
-            Some(String::from_utf8(data.to_vec()).unwrap())
-        } else {
-            None
-        }
+        self.database
+            .get(key.as_bytes())
+            .unwrap()
+            .map(|data| String::from_utf8(data.to_vec()).unwrap())
     }
 
     pub(crate) fn store_playlist_name(&self, mode: &AudioMode, playlist_name: &String) {
@@ -54,7 +49,7 @@ impl Db {
 
     pub(crate) fn store_position(&mut self, mode: &AudioMode, position: Position) {
         if let Some(current_playlist_name) = self.fetch_playlist_name(mode) {
-            let key = current_playlist_name.to_owned() + "_position";
+            let key = current_playlist_name + "_position";
             println!(
                 "Storing position {:?} for mode {:?} with key {:?}",
                 position, mode, key

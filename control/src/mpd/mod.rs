@@ -3,7 +3,6 @@ use std::thread;
 use mpdrs::client::Client;
 use mpdrs::status::State::Play;
 use mpdrs::{Idle, Playlist};
-use sled::IVec;
 
 mod db;
 use db::Db;
@@ -54,11 +53,11 @@ impl Mpd {
             database: Db::open(),
             mode: AudioMode::Music,
         };
-        mpd.is_playing();
+        mpd.playing();
         mpd
     }
 
-    fn rescan(&mut self) {
+    pub(crate) fn rescan(&mut self) {
         let mut watcher = mpdrs::Client::connect(&self.ip).unwrap();
         let thread_join_handle = thread::spawn(move || {
             watcher.wait(&[mpdrs::idle::Subsystem::Update]).unwrap();
@@ -67,7 +66,7 @@ impl Mpd {
         thread_join_handle.join().unwrap();
     }
 
-    fn is_playing(&mut self) -> bool {
+    fn playing(&mut self) -> bool {
         let playback_state = self.client.status().unwrap().state;
         playback_state == Play
     }
@@ -135,7 +134,8 @@ impl Mpd {
             playlist_name
         } else {
             let playlist_name = self.first_playlist_for_mode().unwrap();
-            self.database.store_playlist_name(&self.mode, &playlist_name);
+            self.database
+                .store_playlist_name(&self.mode, &playlist_name);
             playlist_name
         };
         self.load_playlist(&new_playlist_name);
@@ -175,9 +175,9 @@ impl Mpd {
         self.database.store_position(&self.mode, position);
     }
 
-    fn load_playlist(&mut self, playlist_name: &String) {
+    fn load_playlist(&mut self, playlist_name: &str) {
         self.client.clear().unwrap();
-        self.client.load(&playlist_name, ..).unwrap();
+        self.client.load(playlist_name, ..).unwrap();
     }
 
     fn load_position(&mut self, position: db::Position) {

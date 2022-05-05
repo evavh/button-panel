@@ -28,13 +28,13 @@ fn setup_udev_access() -> Result<()> {
     Ok(())
 }
 
-fn get_tty_path() -> Result<PathBuf> {
+fn _get_tty_path() -> Result<PathBuf> {
     const MANUFACTURER: &str = "dvdva";
     const PRODUCT: &str = "desk button panel";
     let prefix = format!(
         "usb-{}_{}_",
-        MANUFACTURER.replace(" ", "_"),
-        PRODUCT.replace(" ", "_")
+        MANUFACTURER.replace(' ', "_"),
+        PRODUCT.replace(' ', "_")
     );
 
     let mut device = None;
@@ -68,24 +68,24 @@ struct Args {
     setup: bool,
 }
 
-struct Panel {
+struct _Panel {
     file: File,
 }
 
-impl Panel {
-    fn try_connect() -> Result<Self> {
-        let path = get_tty_path()?;
+impl _Panel {
+    fn _try_connect() -> Result<Self> {
+        let path = _get_tty_path()?;
         let file = File::open(path).wrap_err("Error opening connection")?;
-        Ok(Panel { file })
+        Ok(_Panel { file })
     }
 
-    fn recv(&mut self) -> Result<String> {
+    fn _recv(&mut self) -> Result<String> {
         let mut buf = [0u8; 29];
         self.file
             .read_exact(&mut buf)
             .wrap_err("Recieved invalid message")
             .with_note(|| "Is the panel still connected?")?;
-        let bytes = &buf[..buf.len() - 1];
+        let _bytes = &buf[..buf.len() - 1];
         todo!("Deserialize to ButtonPress enum")
     }
 }
@@ -124,6 +124,7 @@ fn main() -> Result<()> {
     }
 
     let mut mpd = Mpd::connect("192.168.1.101:6600");
+    mpd.rescan();
     let mut panel = MockPanel::try_connect().wrap_err("Could not connect to Panel")?;
 
     while let Some(button_press) = panel.recv() {
