@@ -24,7 +24,8 @@ fn main() -> Result<()> {
 
     let mut mpd = Mpd::connect("192.168.1.101:6600");
     mpd.rescan();
-    let mut panel = panel::MockPanel::try_connect().wrap_err("Could not connect to Panel")?;
+    let mut panel = panel::MockPanel::try_connect()
+        .wrap_err("Could not connect to Panel")?;
 
     while let Some(button_press) = panel.recv() {
         use mpd::AudioMode::*;

@@ -38,7 +38,7 @@ impl Db {
             .map(|data| String::from_utf8(data.to_vec()).unwrap())
     }
 
-    pub(crate) fn store_playlist_name(&self, mode: &AudioMode, playlist_name: &String) {
+    pub(crate) fn store_playlist_name(&self, mode: &AudioMode, playlist_name: &str) {
         let key = mode.to_prefix().to_owned() + "cur_playlist";
         self.database
             .insert(key.as_bytes(), playlist_name.as_bytes())

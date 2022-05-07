@@ -85,7 +85,7 @@ impl MockPanel {
     }
 
     pub(crate) fn recv(&mut self) -> Option<ButtonPress> {
-        thread::sleep(time::Duration::from_secs(3));
+        thread::sleep(time::Duration::from_secs(10));
         self.actions.pop()
     }
 }

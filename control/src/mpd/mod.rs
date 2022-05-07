@@ -7,6 +7,16 @@ use mpdrs::{Idle, Playlist};
 mod db;
 use db::Db;
 
+#[derive(Default)]
+struct Settings {
+    repeat: bool,
+    random: bool,
+    single: bool,
+    consume: bool,
+
+    save_playlist: bool,
+}
+
 #[derive(Debug)]
 pub enum AudioMode {
     Music,
@@ -16,7 +26,7 @@ pub enum AudioMode {
 }
 
 impl AudioMode {
-    pub fn next(&mut self) {
+    fn next(&mut self) {
         use AudioMode::*;
         *self = match self {
             Music => Book,
@@ -33,6 +43,27 @@ impl AudioMode {
             Book => "book_",
             Podcast => "podcast_",
             Meditation => "meditation_",
+        }
+    }
+
+    fn settings(&self) -> Settings {
+        use AudioMode::*;
+        match self {
+            Music => Settings::default(),
+            Book => Settings {
+                consume: true,
+                save_playlist: true,
+                ..Settings::default()
+            },
+            Podcast => Settings {
+                consume: true,
+                save_playlist: true,
+                ..Settings::default()
+            },
+            Meditation => Settings {
+                single: true,
+                ..Settings::default()
+            },
         }
     }
 }
@@ -94,6 +125,7 @@ impl Mpd {
     }
 
     pub(crate) fn skip(&mut self) {
+        self.client.play().unwrap();
         let position: u32 = self
             .client
             .status()
@@ -103,7 +135,6 @@ impl Mpd {
             .as_secs()
             .try_into()
             .unwrap();
-        self.client.play().unwrap();
         self.client.rewind(position + 15).unwrap();
     }
 
@@ -127,6 +158,13 @@ impl Mpd {
 
     pub(crate) fn next_mode(&mut self) {
         self.store_position();
+        if self.mode.settings().save_playlist {
+            let old_playlist_name =
+                self.database.fetch_playlist_name(&self.mode).unwrap();
+            self.client.pl_remove(&old_playlist_name).unwrap();
+            self.client.save(&old_playlist_name).unwrap();
+        }
+
         self.mode.next();
 
         let new_playlist_name = self.database.fetch_playlist_name(&self.mode);
@@ -147,6 +185,8 @@ impl Mpd {
             self.seek_to_beginning();
         }
 
+        self.set(self.mode.settings());
+
         dbg!(&self.mode);
     }
 
@@ -160,13 +200,16 @@ impl Mpd {
         None
     }
     fn store_position(&mut self) {
-        let pos_in_pl = if let Some(song) = dbg!(self.client.status().unwrap().song) {
-            song.pos
-        } else {
-            0
-        };
+        let pos_in_pl =
+            if let Some(song) = dbg!(self.client.status().unwrap().song) {
+                song.pos
+            } else {
+                0
+            };
 
-        let elapsed = if let Some(elapsed) = dbg!(self.client.status().unwrap().elapsed) {
+        let elapsed = if let Some(elapsed) =
+            dbg!(self.client.status().unwrap().elapsed)
+        {
             elapsed.as_secs().try_into().unwrap()
         } else {
             0
@@ -190,5 +233,12 @@ impl Mpd {
 
     fn seek_to_beginning(&mut self) {
         self.client.seek(0, 0).unwrap();
+    }
+
+    fn set(&mut self, mpd_settings: Settings) {
+        self.client.repeat(mpd_settings.repeat).unwrap();
+        self.client.random(mpd_settings.random).unwrap();
+        self.client.single(mpd_settings.single).unwrap();
+        self.client.consume(mpd_settings.consume).unwrap();
     }
 }
