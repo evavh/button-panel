@@ -152,18 +152,26 @@ impl Mpd {
         todo!()
     }
 
-    pub(crate) fn next_playlist(&self) {
-        todo!()
+    pub(crate) fn next_playlist(&mut self) {
+        let current_playlist_name =
+            self.database.fetch_playlist_name(&self.mode).unwrap();
+        self.store_position(&current_playlist_name);
+        self.save_playlist_if_necessary(&current_playlist_name);
+
+        let new_playlist_name =
+            self.next_playlist_for_mode(&current_playlist_name);
+
+        self.load_playlist(&new_playlist_name);
+
+        let new_position = self.database.fetch_position(&new_playlist_name);
+        self.load_position(new_position);
     }
 
     pub(crate) fn next_mode(&mut self) {
-        self.store_position();
-        if self.mode.settings().save_playlist {
-            let old_playlist_name =
-                self.database.fetch_playlist_name(&self.mode).unwrap();
-            self.client.pl_remove(&old_playlist_name).unwrap();
-            self.client.save(&old_playlist_name).unwrap();
-        }
+        let current_playlist_name =
+            self.database.fetch_playlist_name(&self.mode).unwrap();
+        self.store_position(&current_playlist_name);
+        self.save_playlist_if_necessary(&current_playlist_name);
 
         self.mode.next();
 
@@ -179,15 +187,18 @@ impl Mpd {
         self.load_playlist(&new_playlist_name);
 
         let new_position = self.database.fetch_position(&new_playlist_name);
-        if let Some(new_position) = new_position {
-            self.load_position(new_position);
-        } else {
-            self.seek_to_beginning();
-        }
+        self.load_position(new_position);
 
-        self.set(self.mode.settings());
+        self.apply_settings(self.mode.settings());
 
         dbg!(&self.mode);
+    }
+
+    fn save_playlist_if_necessary(&mut self, playlist_name: &str) {
+        if self.mode.settings().save_playlist {
+            self.client.pl_remove(&playlist_name).unwrap();
+            self.client.save(&playlist_name).unwrap();
+        }
     }
 
     fn first_playlist_for_mode(&mut self) -> Option<String> {
@@ -199,7 +210,12 @@ impl Mpd {
         }
         None
     }
-    fn store_position(&mut self) {
+
+    fn next_playlist_for_mode<'a>(&mut self, current_playlist_name: &'a str) -> &'a str{
+        todo!()
+    }
+
+    fn store_position(&mut self, playlist_name: &str) {
         let pos_in_pl =
             if let Some(song) = dbg!(self.client.status().unwrap().song) {
                 song.pos
@@ -216,7 +232,7 @@ impl Mpd {
         };
 
         let position = db::Position { pos_in_pl, elapsed };
-        self.database.store_position(&self.mode, position);
+        self.database.store_position(playlist_name, position);
     }
 
     fn load_playlist(&mut self, playlist_name: &str) {
@@ -224,21 +240,27 @@ impl Mpd {
         self.client.load(playlist_name, ..).unwrap();
     }
 
-    fn load_position(&mut self, position: db::Position) {
-        self.client.queue().unwrap();
-        self.client
-            .seek(position.pos_in_pl, position.elapsed)
-            .unwrap();
+    fn load_position(&mut self, position: Option<db::Position>) {
+        if let Some(position) = position {
+            self.client.queue().unwrap();
+            self.client
+                .seek(position.pos_in_pl, position.elapsed)
+                .unwrap();
+        } else {
+            self.seek_to_beginning();
+        }
     }
 
     fn seek_to_beginning(&mut self) {
         self.client.seek(0, 0).unwrap();
     }
 
-    fn set(&mut self, mpd_settings: Settings) {
+    fn apply_settings(&mut self, mpd_settings: Settings) {
         self.client.repeat(mpd_settings.repeat).unwrap();
         self.client.random(mpd_settings.random).unwrap();
         self.client.single(mpd_settings.single).unwrap();
         self.client.consume(mpd_settings.consume).unwrap();
     }
+
+    
 }

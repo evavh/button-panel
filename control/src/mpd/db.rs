@@ -45,16 +45,14 @@ impl Db {
             .unwrap();
     }
 
-    pub(crate) fn store_position(&mut self, mode: &AudioMode, position: Position) {
-        if let Some(current_playlist_name) = self.fetch_playlist_name(mode) {
-            let key = current_playlist_name + "_position";
+    pub(crate) fn store_position(&mut self, playlist_name: &str, position: Position) {
+            let key = playlist_name.to_owned() + "_position";
             self.database
                 .insert(key.as_bytes(), position.to_bytes())
                 .unwrap();
-        }
     }
 
-    pub(crate) fn fetch_position(&self, playlist_name: &String) -> Option<Position> {
+    pub(crate) fn fetch_position(&self, playlist_name: &str) -> Option<Position> {
         let key = playlist_name.to_owned() + "_position";
         println!("Fetching position with key {:?}", key);
         self.database
