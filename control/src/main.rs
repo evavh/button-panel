@@ -13,7 +13,8 @@ struct Args {
     setup: bool,
 }
 
-fn main() -> Result<()> {
+#[tokio::main]
+async fn main() -> Result<()> {
     color_eyre::install()?;
     let args = Args::parse();
 
@@ -24,10 +25,10 @@ fn main() -> Result<()> {
 
     let mut mpd = Mpd::connect("192.168.1.101:6600");
     mpd.rescan();
-    let mut panel = panel::MockPanel::try_connect()
+    let mut panel = panel::UsartPanel::try_connect()
         .wrap_err("Could not connect to Panel")?;
 
-    while let Some(button_press) = panel.recv() {
+    while let Some(button_press) = panel.recv().await {
         use mpd::AudioMode::*;
         use protocol::{Button::*, ButtonPress::*};
         match (&mpd.mode, button_press) {

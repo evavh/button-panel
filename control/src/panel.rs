@@ -1,67 +1,81 @@
 use core::time;
-use std::fs::File;
-use std::io::Read;
-use std::path::{Path, PathBuf};
+use std::io;
+use std::path::Path;
 use std::thread;
 
+use bytes::BytesMut;
 use color_eyre::eyre::WrapErr;
 use color_eyre::{eyre::eyre, Help, Result};
+use futures::stream::StreamExt;
+use tokio_serial::{SerialPortBuilderExt, SerialStream};
+use tokio_util::codec::{Decoder, Encoder, Framed};
 
 use protocol::{Button, ButtonPress};
 
-struct _Panel {
-    file: File,
+struct LineCodec;
+
+impl Decoder for LineCodec {
+    type Item = String;
+    type Error = io::Error;
+
+    fn decode(
+        &mut self,
+        src: &mut BytesMut,
+    ) -> Result<Option<Self::Item>, Self::Error> {
+        let newline = src.as_ref().iter().position(|b| *b == b'\n');
+        if let Some(n) = newline {
+            let line = src.split_to(n + 1);
+            return match std::str::from_utf8(line.as_ref()) {
+                Ok(s) => Ok(Some(s.to_string())),
+                Err(_) => {
+                    Err(io::Error::new(io::ErrorKind::Other, "Invalid String"))
+                }
+            };
+        }
+        Ok(None)
+    }
 }
 
-impl _Panel {
-    fn _get_tty_path() -> Result<PathBuf> {
-        const _MANUFACTURER: &str = "dvdva";
-        const _PRODUCT: &str = "desk button panel";
-        let prefix = format!(
-            "usb-{}_{}_",
-            _MANUFACTURER.replace(' ', "_"),
-            _PRODUCT.replace(' ', "_")
-        );
+impl Encoder<String> for LineCodec {
+    type Error = io::Error;
 
-        let mut device = None;
-        for res in std::fs::read_dir("/dev/serial/by-id")
-            .wrap_err("no usb serial devices present")
-            .suggestion("Connect the button panel")?
-        {
-            let path = res?.path();
-            let name = path.file_name().unwrap().to_str().unwrap();
-            match (&mut device, name.starts_with(&prefix)) {
-                (None, true) => device = Some(path),
-                (Some(existing), true) => {
-                    return Err(eyre!(
-                        "Multiple matching ttys: {existing:?} and {path:?}"
-                    ))
-                }
-                _ => continue,
-            }
-        }
-        let device = device.ok_or_else(|| {
-            eyre!("No device found for '{_MANUFACTURER}, {_PRODUCT}'")
-                .suggestion("Connect the button panel")
-        })?;
+    fn encode(
+        &mut self,
+        _item: String,
+        _dst: &mut BytesMut,
+    ) -> Result<(), Self::Error> {
+        Ok(())
+    }
+}
 
-        std::fs::canonicalize(device).wrap_err("Could not resolve tty path")
+pub(crate) struct UsartPanel {
+    reader: Framed<SerialStream, LineCodec>,
+}
+
+impl UsartPanel {
+    pub(crate) fn try_connect() -> Result<Self> {
+        let tty_path = "/dev/ttyUSB0";
+        let mut port = tokio_serial::new(tty_path, 9600).open_native_async()?;
+
+        #[cfg(unix)]
+        port.set_exclusive(false)
+            .expect("Unable to set serial port exclusive to false");
+
+        let reader = LineCodec.framed(port);
+
+        Ok(Self { reader })
     }
 
-    fn _try_connect() -> Result<Self> {
-        let path = _Panel::_get_tty_path()?;
-        let file = File::open(path).wrap_err("Error opening connection")?;
-        Ok(_Panel { file })
-    }
+    pub(crate) async fn recv(&mut self) -> Option<ButtonPress> {
+        let line = self
+            .reader
+            .next()
+            .await
+            .expect("Serial disconnected")
+            .unwrap();
 
-    fn _recv(&mut self) -> Result<String> {
-        let mut buf = [0u8; 29];
-        self.file
-            .read_exact(&mut buf)
-            .wrap_err("Recieved invalid message")
-            .with_note(|| "Is the panel still connected?")?;
-        let _bytes = &buf[..buf.len() - 1];
-        todo!("Deserialize to ButtonPress enum")
+        dbg!(line);
+        todo!()
     }
 }
 
@@ -88,7 +102,7 @@ impl MockPanel {
         Ok(MockPanel { actions })
     }
 
-    pub(crate) fn recv(&mut self) -> Option<ButtonPress> {
+    pub(crate) async fn recv(&mut self) -> Option<ButtonPress> {
         thread::sleep(time::Duration::from_secs(2));
         self.actions.pop()
     }
