@@ -22,10 +22,10 @@ defmt::timestamp! {"{=u64}", {
 }
 
 use embassy::executor::Spawner;
-use embassy_stm32::exti::ExtiInput;
-use embassy_stm32::gpio::{Input, Pin, Pull};
 use embassy::time::{Duration, Timer};
 use embassy_stm32::dma::NoDma;
+use embassy_stm32::exti::ExtiInput;
+use embassy_stm32::gpio::{Input, Pin, Pull};
 use embassy_stm32::usart;
 use embassy_stm32::Peripherals;
 
@@ -35,8 +35,11 @@ use protocol::{Button, ButtonPress};
 async fn main(_spawner: Spawner, p: Peripherals) -> ! {
     info!("Press a button...");
 
-    let config = usart::Config::default();
-    let mut usart = usart::Uart::new(p.USART1, p.PA10, p.PA9, NoDma, NoDma, config);
+    let mut config = usart::Config::default();
+    config.baudrate = 9600;
+
+    let mut usart =
+        usart::Uart::new(p.USART1, p.PA10, p.PA9, NoDma, NoDma, config);
 
     unwrap!(usart.blocking_write(b"Hello Embassy World!\r\n"));
     info!("Wrote Hello, starting echo");
@@ -44,7 +47,7 @@ async fn main(_spawner: Spawner, p: Peripherals) -> ! {
     // let mut buf = [0u8; 1];
     loop {
         // unwrap!(usart.blocking_read(&mut buf));
-        unwrap!(usart.blocking_write(b"HOI"));
+        unwrap!(usart.blocking_write(b"HOI\n"));
         Timer::after(Duration::from_millis(300)).await;
     }
 
