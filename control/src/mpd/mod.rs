@@ -158,10 +158,17 @@ impl Mpd {
         self.store_position(&current_playlist_name);
         self.save_playlist_if_necessary(&current_playlist_name);
 
-        let new_playlist_name =
-            self.next_playlist_for_mode(&current_playlist_name);
+        let new_playlist_name = if let Some(playlist_name) =
+            self.next_playlist_for_mode(&current_playlist_name)
+        {
+            playlist_name
+        } else {
+            current_playlist_name
+        };
 
         self.load_playlist(&new_playlist_name);
+        self.database
+            .store_playlist_name(&self.mode, &new_playlist_name);
 
         let new_position = self.database.fetch_position(&new_playlist_name);
         self.load_position(new_position);
@@ -205,31 +212,36 @@ impl Mpd {
         let playlists = self.get_playlists();
         for playlist in playlists {
             if playlist.name.starts_with(self.mode.to_prefix()) {
-                return dbg!(Some(playlist.name));
+                return Some(playlist.name);
             }
         }
         None
     }
 
-    fn next_playlist_for_mode<'a>(&mut self, current_playlist_name: &'a str) -> &'a str{
-        todo!()
+    fn next_playlist_for_mode(
+        &mut self,
+        current_playlist_name: &str,
+    ) -> Option<String> {
+        let playlists = self.get_playlists().into_iter().map(|pl| pl.name);
+        let mut playlists = playlists
+            .filter(|pl| pl.starts_with(self.mode.to_prefix()))
+            .skip_while(|pl| pl != current_playlist_name);
+        dbg!(playlists.next())
     }
 
     fn store_position(&mut self, playlist_name: &str) {
-        let pos_in_pl =
-            if let Some(song) = dbg!(self.client.status().unwrap().song) {
-                song.pos
-            } else {
-                0
-            };
-
-        let elapsed = if let Some(elapsed) =
-            dbg!(self.client.status().unwrap().elapsed)
-        {
-            elapsed.as_secs().try_into().unwrap()
+        let pos_in_pl = if let Some(song) = self.client.status().unwrap().song {
+            song.pos
         } else {
             0
         };
+
+        let elapsed =
+            if let Some(elapsed) = self.client.status().unwrap().elapsed {
+                elapsed.as_secs().try_into().unwrap()
+            } else {
+                0
+            };
 
         let position = db::Position { pos_in_pl, elapsed };
         self.database.store_position(playlist_name, position);
@@ -261,6 +273,4 @@ impl Mpd {
         self.client.single(mpd_settings.single).unwrap();
         self.client.consume(mpd_settings.consume).unwrap();
     }
-
-    
 }

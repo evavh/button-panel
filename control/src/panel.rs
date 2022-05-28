@@ -4,8 +4,8 @@ use std::io::Read;
 use std::path::{Path, PathBuf};
 use std::thread;
 
-use color_eyre::{eyre::eyre, Help, Result};
 use color_eyre::eyre::WrapErr;
+use color_eyre::{eyre::eyre, Help, Result};
 
 use protocol::{Button, ButtonPress};
 
@@ -33,7 +33,9 @@ impl _Panel {
             match (&mut device, name.starts_with(&prefix)) {
                 (None, true) => device = Some(path),
                 (Some(existing), true) => {
-                    return Err(eyre!("Multiple matching ttys: {existing:?} and {path:?}"))
+                    return Err(eyre!(
+                        "Multiple matching ttys: {existing:?} and {path:?}"
+                    ))
                 }
                 _ => continue,
             }
@@ -72,10 +74,12 @@ impl MockPanel {
         let mut actions = vec![
             ButtonPress::Short(Button::TopMiddle), //play (Music)
             ButtonPress::Short(Button::TopRight),  //next (Music)
+            ButtonPress::Long(Button::TopRight),   //next playlist (Music)
             ButtonPress::Long(Button::TopMiddle),  //Music to Book
             ButtonPress::Short(Button::TopRight),  //next (Book)
             ButtonPress::Long(Button::TopMiddle),  //Book to Podcast
             ButtonPress::Short(Button::TopRight),  //next (Podcast)
+            ButtonPress::Long(Button::TopRight),   //next playlist (Podcast)
             ButtonPress::Long(Button::TopMiddle),  //Podcast to Meditation
             ButtonPress::Short(Button::TopRight),  //next (Meditation)
             ButtonPress::Long(Button::TopMiddle),  //Meditation to Music
@@ -85,7 +89,7 @@ impl MockPanel {
     }
 
     pub(crate) fn recv(&mut self) -> Option<ButtonPress> {
-        thread::sleep(time::Duration::from_secs(10));
+        thread::sleep(time::Duration::from_secs(2));
         self.actions.pop()
     }
 }
@@ -97,9 +101,8 @@ pub(crate) fn setup_udev_access() -> Result<()> {
         return Err(eyre!("udev file already exists"));
     }
     if sudo::check() != sudo::RunningAs::Root {
-        return Err(
-            eyre!("need to run as root to create udev rules").suggestion("restart using sudo")
-        );
+        return Err(eyre!("need to run as root to create udev rules")
+            .suggestion("restart using sudo"));
     };
     std::fs::write(path, rule)?;
     Ok(())

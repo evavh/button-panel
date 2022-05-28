@@ -54,7 +54,6 @@ impl Db {
 
     pub(crate) fn fetch_position(&self, playlist_name: &str) -> Option<Position> {
         let key = playlist_name.to_owned() + "_position";
-        println!("Fetching position with key {:?}", key);
         self.database
             .get(key.as_bytes())
             .unwrap()
