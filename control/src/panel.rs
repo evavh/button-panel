@@ -15,23 +15,17 @@ use protocol::{Button, ButtonPress};
 struct LineCodec;
 
 impl Decoder for LineCodec {
-    type Item = String;
+    type Item = u8;
     type Error = io::Error;
 
     fn decode(
         &mut self,
         src: &mut BytesMut,
     ) -> Result<Option<Self::Item>, Self::Error> {
-        dbg!();
         let newline = src.as_ref().iter().position(|b| *b == b'\n');
         if let Some(n) = newline {
             let line = src.split_to(n + 1);
-            return match std::str::from_utf8(line.as_ref()) {
-                Ok(s) => Ok(Some(s.to_string())),
-                Err(_) => {
-                    Err(io::Error::new(io::ErrorKind::Other, "Invalid String"))
-                }
-            };
+            return Ok(Some(line[0]))
         }
         Ok(None)
     }
@@ -67,7 +61,7 @@ impl UsartPanel {
         Ok(Self { reader })
     }
 
-    pub(crate) async fn recv(&mut self) -> Option<ButtonPress> {
+    pub(crate) async fn recv(&mut self) -> Result<ButtonPress, &'static str> {
         let line = self
             .reader
             .next()
@@ -75,8 +69,7 @@ impl UsartPanel {
             .expect("Serial disconnected")
             .unwrap();
 
-        dbg!(line);
-        todo!()
+        ButtonPress::deserialize(dbg!(line))
     }
 }
 

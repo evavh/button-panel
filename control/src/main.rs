@@ -28,7 +28,8 @@ async fn main() -> Result<()> {
     let mut panel = panel::UsartPanel::try_connect()
         .wrap_err("Could not connect to Panel")?;
 
-    while let Some(button_press) = panel.recv().await {
+    loop {
+        let button_press = panel.recv().await.unwrap();
         use mpd::AudioMode::*;
         use protocol::{Button::*, ButtonPress::*};
         match (&mpd.mode, button_press) {
@@ -46,5 +47,4 @@ async fn main() -> Result<()> {
             _ => todo!("some other buttonpress"),
         }
     }
-    Ok(())
 }

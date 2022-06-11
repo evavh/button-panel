@@ -41,13 +41,11 @@ async fn main(_spawner: Spawner, p: Peripherals) -> ! {
     let mut usart =
         usart::Uart::new(p.USART1, p.PA10, p.PA9, NoDma, NoDma, config);
 
-    unwrap!(usart.blocking_write(b"Hello Embassy World!\r\n"));
-    info!("Wrote Hello, starting echo");
-
-    // let mut buf = [0u8; 1];
+    let mut buf = [0, '\n' as u8];
     loop {
-        // unwrap!(usart.blocking_read(&mut buf));
-        unwrap!(usart.blocking_write(b"HOI\n"));
+        let buttonpress = ButtonPress::Short(Button::TopMiddle);
+        buf[0] = buttonpress.serialize();
+        unwrap!(usart.blocking_write(&buf));
         Timer::after(Duration::from_millis(300)).await;
     }
 
