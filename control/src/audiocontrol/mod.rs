@@ -68,24 +68,24 @@ impl AudioMode {
     }
 }
 
-pub(crate) struct Mpd {
+pub(crate) struct AudioController {
     client: Client,
     ip: String,
     database: Db,
     pub(crate) mode: AudioMode,
 }
 
-impl Mpd {
+impl AudioController {
     pub(crate) fn connect(ip: &str) -> Self {
         let client = Client::connect(ip).unwrap();
-        let mut mpd = Mpd {
+        let mut controller = AudioController {
             client,
             ip: ip.to_owned(),
             database: Db::open(),
             mode: AudioMode::Music,
         };
-        mpd.playing();
-        mpd
+        controller.playing();
+        controller
     }
 
     pub(crate) fn rescan(&mut self) {
@@ -267,10 +267,10 @@ impl Mpd {
         self.client.seek(0, 0).unwrap();
     }
 
-    fn apply_settings(&mut self, mpd_settings: Settings) {
-        self.client.repeat(mpd_settings.repeat).unwrap();
-        self.client.random(mpd_settings.random).unwrap();
-        self.client.single(mpd_settings.single).unwrap();
-        self.client.consume(mpd_settings.consume).unwrap();
+    fn apply_settings(&mut self, audio_settings: Settings) {
+        self.client.repeat(audio_settings.repeat).unwrap();
+        self.client.random(audio_settings.random).unwrap();
+        self.client.single(audio_settings.single).unwrap();
+        self.client.consume(audio_settings.consume).unwrap();
     }
 }

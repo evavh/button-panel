@@ -2,8 +2,8 @@ use clap::Parser;
 use color_eyre::eyre::Context;
 use color_eyre::Result;
 
-use crate::mpd::Mpd;
-mod mpd;
+use crate::audiocontrol::AudioController;
+mod audiocontrol;
 mod panel;
 
 #[derive(Parser, Debug)]
@@ -23,27 +23,27 @@ async fn main() -> Result<()> {
         return Ok(());
     }
 
-    let mut mpd = Mpd::connect("192.168.1.101:6600");
-    mpd.rescan();
+    let mut audio = AudioController::connect("192.168.1.101:6600");
+    audio.rescan();
     let mut panel = panel::UsartPanel::try_connect()
         .wrap_err("Could not connect to Panel")?;
 
     loop {
         let button_press = panel.recv().await.unwrap();
-        use mpd::AudioMode::*;
+        use audiocontrol::AudioMode::*;
         use protocol::{Button::*, ButtonPress::*};
-        match (&mpd.mode, button_press) {
-            (Music | Meditation, Short(TopLeft)) => mpd.previous(),
-            (Book | Podcast, Short(TopLeft)) => mpd.rewind(),
+        match (&audio.mode, button_press) {
+            (Music | Meditation, Short(TopLeft)) => audio.previous(),
+            (Book | Podcast, Short(TopLeft)) => audio.rewind(),
 
-            (Music | Meditation, Short(TopRight)) => mpd.next(),
-            (Book | Podcast, Short(TopRight)) => mpd.skip(),
+            (Music | Meditation, Short(TopRight)) => audio.next(),
+            (Book | Podcast, Short(TopRight)) => audio.skip(),
 
-            (_, Short(TopMiddle)) => mpd.toggle_playback(),
+            (_, Short(TopMiddle)) => audio.toggle_playback(),
 
-            (_, Long(TopLeft)) => mpd.prev_playlist(),
-            (_, Long(TopRight)) => mpd.next_playlist(),
-            (_, Long(TopMiddle)) => mpd.next_mode(),
+            (_, Long(TopLeft)) => audio.prev_playlist(),
+            (_, Long(TopRight)) => audio.next_playlist(),
+            (_, Long(TopMiddle)) => audio.next_mode(),
             _ => todo!("some other buttonpress"),
         }
     }
