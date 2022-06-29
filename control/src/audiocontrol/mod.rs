@@ -221,13 +221,21 @@ impl AudioController {
 
     fn next_playlist_for_mode(
         &mut self,
-        current_playlist_name: &str,
+        current_playlist_name: &String,
     ) -> Option<String> {
-        let playlists = self.get_playlists().into_iter().map(|pl| pl.name);
-        let mut playlists = playlists
+        let playlist_names = self.get_playlists().into_iter().map(|pl| pl.name);
+        let mut playlist_names = playlist_names
             .filter(|pl| pl.starts_with(self.mode.to_prefix()))
-            .skip_while(|pl| pl != current_playlist_name);
-        dbg!(playlists.next())
+            .collect::<Vec<_>>();
+
+        playlist_names.sort();
+
+        let mut playlist_names = playlist_names.iter().cycle().peekable();
+
+        while *playlist_names.peek().unwrap() != current_playlist_name {
+            playlist_names.next();
+        }
+        playlist_names.skip(1).next().map(|s| s.to_owned())
     }
 
     fn store_position(&mut self, playlist_name: &str) {
