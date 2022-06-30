@@ -25,7 +25,7 @@ impl Decoder for LineCodec {
         let newline = src.as_ref().iter().position(|b| *b == b'\n');
         if let Some(n) = newline {
             let line = src.split_to(n + 1);
-            return Ok(Some(line[0]))
+            return Ok(Some(line[0]));
         }
         Ok(None)
     }
@@ -81,16 +81,10 @@ impl MockPanel {
     pub(crate) fn try_connect() -> Result<Self> {
         let mut actions = vec![
             ButtonPress::Short(Button::TopMiddle), //play (Music)
-            ButtonPress::Short(Button::TopRight),  //next (Music)
             ButtonPress::Long(Button::TopRight),   //next playlist (Music)
-            ButtonPress::Long(Button::TopMiddle),  //Music to Book
-            ButtonPress::Short(Button::TopRight),  //next (Book)
-            ButtonPress::Long(Button::TopMiddle),  //Book to Podcast
-            ButtonPress::Short(Button::TopRight),  //next (Podcast)
-            ButtonPress::Long(Button::TopRight),   //next playlist (Podcast)
-            ButtonPress::Long(Button::TopMiddle),  //Podcast to Meditation
-            ButtonPress::Short(Button::TopRight),  //next (Meditation)
-            ButtonPress::Long(Button::TopMiddle),  //Meditation to Music
+            ButtonPress::Long(Button::TopRight),   //next playlist (Music)
+            ButtonPress::Long(Button::TopLeft),    //prev playlist (Music)
+            ButtonPress::Long(Button::TopLeft),    //prev playlist (Music)
         ];
         actions.reverse();
         Ok(MockPanel { actions })
