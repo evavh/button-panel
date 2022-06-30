@@ -1,12 +1,17 @@
 use std::thread;
 
 use mpdrs::client::Client;
-use mpdrs::error::{Error, ServerError};
+use mpdrs::error::Error;
 use mpdrs::status::State::Play;
 use mpdrs::{Idle, Playlist};
 
 mod db;
 use db::Db;
+
+enum Direction {
+    Next,
+    Previous,
+}
 
 #[derive(Default)]
 struct Settings {
@@ -157,18 +162,14 @@ impl AudioController {
         };
     }
 
-    pub(crate) fn prev_playlist(&self) {
-        todo!()
-    }
-
-    pub(crate) fn next_playlist(&mut self) {
+    fn switch_playlist(&mut self, direction: Direction) {
         let current_playlist_name =
             self.database.fetch_playlist_name(&self.mode).unwrap();
         self.store_position(&current_playlist_name);
         self.save_playlist_if_necessary(&current_playlist_name);
 
         let new_playlist_name = if let Some(playlist_name) =
-            self.next_playlist_for_mode(&current_playlist_name)
+            self.playlist_for_mode(direction, &current_playlist_name)
         {
             playlist_name
         } else {
@@ -182,6 +183,16 @@ impl AudioController {
 
         let new_position = self.database.fetch_position(&new_playlist_name);
         self.load_position(new_position);
+    }
+
+    pub(crate) fn prev_playlist(&mut self) {
+        self.client.play().unwrap();
+        self.switch_playlist(Direction::Previous);
+    }
+
+    pub(crate) fn next_playlist(&mut self) {
+        self.client.play().unwrap();
+        self.switch_playlist(Direction::Next);
     }
 
     pub(crate) fn next_mode(&mut self) {
@@ -228,8 +239,9 @@ impl AudioController {
         None
     }
 
-    fn next_playlist_for_mode(
+    fn playlist_for_mode(
         &mut self,
+        direction: Direction,
         current_playlist_name: &String,
     ) -> Option<String> {
         let playlist_names = self.get_playlists().into_iter().map(|pl| pl.name);
@@ -239,6 +251,10 @@ impl AudioController {
 
         playlist_names.sort();
 
+        match direction {
+            Direction::Previous => playlist_names.reverse(),
+            _ => (),
+        }
         let mut playlist_names = playlist_names.iter().cycle().peekable();
 
         while *playlist_names.peek().unwrap() != current_playlist_name {
