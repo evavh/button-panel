@@ -83,6 +83,8 @@ pub(crate) struct AudioController {
 
 impl AudioController {
     pub(crate) fn connect(ip: &str) -> Self {
+        println!("Connecting to mpd");
+
         let client = Client::connect(ip).unwrap();
         let mut controller = AudioController {
             client,
@@ -95,6 +97,8 @@ impl AudioController {
     }
 
     pub(crate) fn rescan(&mut self) {
+        println!("Rescanning mpd library");
+
         let mut watcher = mpdrs::Client::connect(&self.ip).unwrap();
         let thread_join_handle = thread::spawn(move || {
             watcher.wait(&[mpdrs::idle::Subsystem::Update]).unwrap();
@@ -113,10 +117,13 @@ impl AudioController {
     }
 
     pub(crate) fn toggle_playback(&mut self) {
+        println!("Toggling playback");
         self.client.toggle_pause().unwrap();
     }
 
     pub(crate) fn rewind(&mut self) {
+        println!("Rewinding by 15 seconds");
+
         self.client.play().unwrap();
         let position: u32 = self
             .client
@@ -132,6 +139,8 @@ impl AudioController {
     }
 
     pub(crate) fn skip(&mut self) {
+        println!("Skipping by 15 seconds");
+
         self.client.play().unwrap();
         let position: u32 = self
             .client
@@ -146,12 +155,17 @@ impl AudioController {
     }
 
     pub(crate) fn previous(&mut self) {
+        println!("Going to previous track");
+
         self.client.play().unwrap();
         self.client.prev().unwrap();
     }
 
     pub(crate) fn next(&mut self) {
+        println!("Going to next track");
+
         self.client.play().unwrap();
+
         match self.client.next() {
             Ok(_) => (),
             Err(Error::Server(server_error)) => {
@@ -205,7 +219,7 @@ impl AudioController {
         self.save_playlist_if_necessary(&current_playlist_name);
 
         self.mode.next();
-        println!("Switched to mode {:?}", self.mode);
+        println!("Switching to mode {:?}", self.mode);
 
         let new_playlist_name = self.database.fetch_playlist_name(&self.mode);
         let new_playlist_name = if let Some(playlist_name) = new_playlist_name {
