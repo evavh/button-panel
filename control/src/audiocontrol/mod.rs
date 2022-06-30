@@ -117,6 +117,7 @@ impl AudioController {
     }
 
     pub(crate) fn rewind(&mut self) {
+        self.client.play().unwrap();
         let position: u32 = self
             .client
             .status()
@@ -196,6 +197,8 @@ impl AudioController {
     }
 
     pub(crate) fn next_mode(&mut self) {
+        self.client.play().unwrap();
+
         let current_playlist_name =
             self.database.fetch_playlist_name(&self.mode).unwrap();
         self.store_position(&current_playlist_name);
