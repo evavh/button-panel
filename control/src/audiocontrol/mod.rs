@@ -198,8 +198,8 @@ impl AudioController {
         let new_position = self.database.fetch_position(&new_playlist_name);
         self.load_position(new_position);
 
-        self.apply_settings(self.mode.settings());
-
+        // disabled while debugging
+        // self.apply_settings(self.mode.settings());
     }
 
     fn save_playlist_if_necessary(&mut self, playlist_name: &str) {
