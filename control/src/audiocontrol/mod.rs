@@ -1,6 +1,7 @@
 use std::thread;
 
 use mpdrs::client::Client;
+use mpdrs::error::{Error, ServerError};
 use mpdrs::status::State::Play;
 use mpdrs::{Idle, Playlist};
 
@@ -145,7 +146,15 @@ impl AudioController {
 
     pub(crate) fn next(&mut self) {
         self.client.play().unwrap();
-        self.client.next().unwrap();
+        match self.client.next() {
+            Ok(_) => (),
+            Err(Error::Server(server_error)) => {
+                if server_error.detail != "Not playing" {
+                    panic!("Unexpected ServerError: {server_error}")
+                }
+            }
+            Err(other_error) => panic!("Unexpected error: {other_error}"),
+        };
     }
 
     pub(crate) fn prev_playlist(&self) {
@@ -264,16 +273,22 @@ impl AudioController {
     fn load_position(&mut self, position: Option<db::Position>) {
         if let Some(position) = position {
             self.client.queue().unwrap();
-            self.client
-                .seek(position.pos_in_pl, position.elapsed)
-                .unwrap();
+            self.seek_to(position.pos_in_pl, position.elapsed);
         } else {
-            self.seek_to_beginning();
+            self.seek_to(0, 0);
         }
     }
 
-    fn seek_to_beginning(&mut self) {
-        self.client.seek(0, 0).unwrap();
+    fn seek_to(&mut self, pos_in_pl: u32, elapsed: u32) {
+        match self.client.seek(pos_in_pl, elapsed) {
+            Ok(_) => (),
+            Err(Error::Server(server_error)) => {
+                if server_error.detail != "Bad song index" {
+                    panic!("Unexpected ServerError: {server_error}")
+                }
+            }
+            Err(other_error) => panic!("Unexpected error: {other_error}"),
+        }
     }
 
     fn apply_settings(&mut self, audio_settings: Settings) {
