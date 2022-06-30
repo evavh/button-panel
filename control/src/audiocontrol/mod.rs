@@ -166,7 +166,7 @@ impl AudioController {
             current_playlist_name
         };
 
-        dbg!("Switching to {new_playlist_name}");
+        println!("Switching to playlist {}", new_playlist_name);
         self.load_playlist(&new_playlist_name);
         self.database
             .store_playlist_name(&self.mode, &new_playlist_name);
@@ -182,7 +182,7 @@ impl AudioController {
         self.save_playlist_if_necessary(&current_playlist_name);
 
         self.mode.next();
-        dbg!("Switched to mode {self.mode}");
+        println!("Switched to mode {:?}", self.mode);
 
         let new_playlist_name = self.database.fetch_playlist_name(&self.mode);
         let new_playlist_name = if let Some(playlist_name) = new_playlist_name {
