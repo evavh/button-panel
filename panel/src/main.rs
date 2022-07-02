@@ -5,7 +5,6 @@
 use defmt::*;
 use defmt_rtt as _;
 use embassy::time::Instant;
-use embassy::util::Unborrow;
 use futures::join;
 // global logger
 use panic_probe as _;
@@ -26,8 +25,8 @@ use embassy::time::{Duration, Timer};
 use embassy_stm32::dma::NoDma;
 use embassy_stm32::exti::ExtiInput;
 use embassy_stm32::gpio::{Input, Pin, Pull};
-use embassy_stm32::usart;
 use embassy_stm32::Peripherals;
+use embassy_stm32::{usart, Unborrow};
 
 use protocol::{Button, ButtonPress};
 
