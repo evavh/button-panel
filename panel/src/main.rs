@@ -4,7 +4,11 @@
 
 use defmt::*;
 use defmt_rtt as _;
+use embassy::blocking_mutex::raw::NoopRawMutex;
+use embassy::mutex::Mutex;
 use embassy::time::Instant;
+use embassy_stm32::peripherals::USART1;
+use embassy_stm32::usart::Uart;
 use futures::join;
 // global logger
 use panic_probe as _;
@@ -30,6 +34,8 @@ use embassy_stm32::{usart, Unborrow};
 
 use protocol::{Button, ButtonPress};
 
+type UsartMutex<'a> = Mutex<NoopRawMutex, Uart<'a, USART1>>;
+
 #[embassy::main]
 async fn main(_spawner: Spawner, p: Peripherals) -> ! {
     info!("Press a button...");
@@ -37,27 +43,29 @@ async fn main(_spawner: Spawner, p: Peripherals) -> ! {
     let mut config = usart::Config::default();
     config.baudrate = 9600;
 
-    let mut usart =
-        usart::Uart::new(p.USART1, p.PA10, p.PA9, NoDma, NoDma, config);
+    let usart = Uart::new(p.USART1, p.PA10, p.PA9, NoDma, NoDma, config);
+    let usart: UsartMutex = Mutex::new(usart);
 
-    let mut buf = [0, '\n' as u8];
-    loop {
+    // let mut buf = [0, '\n' as u8];
+    /* loop {
         let buttonpress = ButtonPress::Short(Button::TopMiddle);
         buf[0] = buttonpress.serialize();
+        let mut usart = usart.lock().await;
         unwrap!(usart.blocking_write(&buf));
         Timer::after(Duration::from_millis(300)).await;
-    }
+    } */
 
-    /* let a = wait_for_button(p.PB12, p.EXTI12, Button::TopLeft);
-    let b = wait_for_button(p.PB13, p.EXTI13, Button::TopMiddle);
-    let c = wait_for_button(p.PB1, p.EXTI1, Button::TopRight);
-    let d = wait_for_button(p.PC15, p.EXTI15, Button::BottomLeft);
-    let e = wait_for_button(p.PB0, p.EXTI0, Button::BottomMiddle);
-    let f = wait_for_button(p.PC14, p.EXTI14, Button::BottomRight);
-    join!(a, b, c, d, e, f); */
+    let a = wait_for_button(&usart, p.PB12, p.EXTI12, Button::TopLeft);
+    let b = wait_for_button(&usart, p.PB13, p.EXTI13, Button::TopMiddle);
+    let c = wait_for_button(&usart, p.PB1, p.EXTI1, Button::TopRight);
+    let d = wait_for_button(&usart, p.PC15, p.EXTI15, Button::BottomLeft);
+    let e = wait_for_button(&usart, p.PB0, p.EXTI0, Button::BottomMiddle);
+    let f = wait_for_button(&usart, p.PC14, p.EXTI14, Button::BottomRight);
+    join!(a, b, c, d, e, f);
 }
 
 async fn wait_for_button<'d, T: Pin>(
+    usart: &UsartMutex<'_>,
     pin: impl Unborrow<Target = T> + 'd,
     ch: impl Unborrow<Target = T::ExtiChannel> + 'd,
     name: protocol::Button,
@@ -76,6 +84,12 @@ async fn wait_for_button<'d, T: Pin>(
             801..=2000 => ButtonPress::Long(name),
             _ => continue,
         };
+
+        let mut buf = [0, '\n' as u8];
+        buf[0] = button_press.serialize();
+        let mut usart = usart.lock().await;
+        unwrap!(usart.blocking_write(&buf));
+
         info!("Press: {}", button_press)
     }
 }
