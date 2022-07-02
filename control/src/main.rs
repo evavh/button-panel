@@ -25,7 +25,7 @@ async fn main() -> Result<()> {
 
     let mut audio = AudioController::connect("192.168.1.101:6600");
     audio.rescan();
-    let mut panel = panel::MockPanel::try_connect()
+    let mut panel = panel::UsartPanel::try_connect()
         .wrap_err("Could not connect to Panel")?;
 
     loop {
