@@ -46,7 +46,7 @@ async fn main() -> Result<()> {
             (_, Long(TopLeft)) => audio.prev_playlist(),
             (_, Long(TopRight)) => audio.next_playlist(),
             (_, Long(TopMiddle)) => audio.next_mode(),
-            _ => todo!("some other buttonpress: {:?}", button_press),
+            _ => println!("Unimplemented buttonpress: {:?}", button_press),
         }
     }
 }
