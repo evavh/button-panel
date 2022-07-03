@@ -11,6 +11,8 @@ mod panel;
 struct Args {
     #[clap(short, long)]
     setup: bool,
+    /// path to the USB device, for example: /dev/ttyUSB0
+    tty: String,
 }
 
 #[tokio::main]
@@ -25,7 +27,7 @@ async fn main() -> Result<()> {
 
     let mut audio = AudioController::connect("192.168.1.101:6600");
     audio.rescan();
-    let mut panel = panel::UsartPanel::try_connect()
+    let mut panel = panel::UsartPanel::try_connect(&args.tty)
         .wrap_err("Could not connect to Panel")?;
 
     loop {
@@ -44,7 +46,7 @@ async fn main() -> Result<()> {
             (_, Long(TopLeft)) => audio.prev_playlist(),
             (_, Long(TopRight)) => audio.next_playlist(),
             (_, Long(TopMiddle)) => audio.next_mode(),
-            _ => todo!("some other buttonpress"),
+            _ => todo!("some other buttonpress: {:?}", button_press),
         }
     }
 }

@@ -48,8 +48,7 @@ pub(crate) struct UsartPanel {
 }
 
 impl UsartPanel {
-    pub(crate) fn try_connect() -> Result<Self> {
-        let tty_path = "/dev/ttyUSB0";
+    pub(crate) fn try_connect(tty_path: &str) -> Result<Self> {
         let mut port = tokio_serial::new(tty_path, 9600).open_native_async()?;
 
         #[cfg(unix)]

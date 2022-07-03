@@ -1,0 +1,6 @@
+[workspace]
+members = [
+	"control",
+	"panel",
+	"protocol",
+]
