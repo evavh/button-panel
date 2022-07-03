@@ -105,6 +105,7 @@ impl AudioController {
         });
         self.client.rescan().unwrap();
         thread_join_handle.join().unwrap();
+        println!("Done rescanning");
     }
 
     fn playing(&mut self) -> bool {
@@ -179,7 +180,10 @@ impl AudioController {
 
     fn switch_playlist(&mut self, direction: Direction) {
         let current_playlist_name =
-            self.database.fetch_playlist_name(&self.mode).unwrap();
+            match self.database.fetch_playlist_name(&self.mode) {
+                Some(playlist_name) => playlist_name,
+                None => self.first_playlist_for_mode().unwrap(),
+            };
         self.store_position(&current_playlist_name);
         self.save_playlist_if_necessary(&current_playlist_name);
 
@@ -213,8 +217,11 @@ impl AudioController {
     pub(crate) fn next_mode(&mut self) {
         self.client.play().unwrap();
 
-        let current_playlist_name =
-            self.database.fetch_playlist_name(&self.mode).unwrap();
+        let current_playlist_name = match
+            self.database.fetch_playlist_name(&self.mode) {
+                Some(playlist_name) => playlist_name,
+                None => self.first_playlist_for_mode().unwrap(),
+            };
         self.store_position(&current_playlist_name);
         self.save_playlist_if_necessary(&current_playlist_name);
 

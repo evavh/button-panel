@@ -30,7 +30,10 @@ impl Db {
         }
     }
 
-    pub(crate) fn fetch_playlist_name(&self, mode: &AudioMode) -> Option<String> {
+    pub(crate) fn fetch_playlist_name(
+        &self,
+        mode: &AudioMode,
+    ) -> Option<String> {
         let key = mode.to_prefix().to_owned() + "cur_playlist";
         self.database
             .get(key.as_bytes())
@@ -38,25 +41,36 @@ impl Db {
             .map(|data| String::from_utf8(data.to_vec()).unwrap())
     }
 
-    pub(crate) fn store_playlist_name(&self, mode: &AudioMode, playlist_name: &str) {
+    pub(crate) fn store_playlist_name(
+        &self,
+        mode: &AudioMode,
+        playlist_name: &str,
+    ) {
         let key = mode.to_prefix().to_owned() + "cur_playlist";
         self.database
             .insert(key.as_bytes(), playlist_name.as_bytes())
             .unwrap();
     }
 
-    pub(crate) fn store_position(&mut self, playlist_name: &str, position: Position) {
-            let key = playlist_name.to_owned() + "_position";
-            self.database
-                .insert(key.as_bytes(), position.to_bytes())
-                .unwrap();
-    }
-
-    pub(crate) fn fetch_position(&self, playlist_name: &str) -> Option<Position> {
+    pub(crate) fn fetch_position(
+        &self,
+        playlist_name: &str,
+    ) -> Option<Position> {
         let key = playlist_name.to_owned() + "_position";
         self.database
             .get(key.as_bytes())
             .unwrap()
             .map(|buffer| Position::from_bytes(buffer.as_ref()))
+    }
+
+    pub(crate) fn store_position(
+        &mut self,
+        playlist_name: &str,
+        position: Position,
+    ) {
+        let key = playlist_name.to_owned() + "_position";
+        self.database
+            .insert(key.as_bytes(), position.to_bytes())
+            .unwrap();
     }
 }
