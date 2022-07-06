@@ -8,6 +8,9 @@ use mpdrs::{Idle, Playlist};
 mod db;
 use db::Db;
 
+mod mpdclient;
+use mpdclient::MpdClient;
+
 enum Direction {
     Next,
     Previous,
@@ -75,20 +78,16 @@ impl AudioMode {
 }
 
 pub(crate) struct AudioController {
-    client: Client,
-    ip: String,
+    client: MpdClient,
     database: Db,
     pub(crate) mode: AudioMode,
 }
 
 impl AudioController {
-    pub(crate) fn connect(ip: &str) -> Self {
-        println!("Connecting to mpd");
-
-        let client = Client::connect(ip).unwrap();
+    pub(crate) fn new(ip: &str) -> Self {
+        let client = MpdClient::connect(ip).unwrap();
         let mut controller = AudioController {
             client,
-            ip: ip.to_owned(),
             database: Db::open(),
             mode: AudioMode::Music,
         };
@@ -98,13 +97,7 @@ impl AudioController {
 
     pub(crate) fn rescan(&mut self) {
         println!("Rescanning mpd library");
-
-        let mut watcher = mpdrs::Client::connect(&self.ip).unwrap();
-        let thread_join_handle = thread::spawn(move || {
-            watcher.wait(&[mpdrs::idle::Subsystem::Update]).unwrap();
-        });
         self.client.rescan().unwrap();
-        thread_join_handle.join().unwrap();
         println!("Done rescanning");
     }
 
@@ -119,7 +112,10 @@ impl AudioController {
 
     pub(crate) fn toggle_playback(&mut self) {
         println!("Toggling playback");
-        self.client.toggle_pause().unwrap();
+
+        self.client
+            .toggle_pause()
+            .expect("Something went wrong toggling playback");
     }
 
     pub(crate) fn rewind(&mut self) {
@@ -217,8 +213,8 @@ impl AudioController {
     pub(crate) fn next_mode(&mut self) {
         self.client.play().unwrap();
 
-        let current_playlist_name = match
-            self.database.fetch_playlist_name(&self.mode) {
+        let current_playlist_name =
+            match self.database.fetch_playlist_name(&self.mode) {
                 Some(playlist_name) => playlist_name,
                 None => self.first_playlist_for_mode().unwrap(),
             };
