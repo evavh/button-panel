@@ -10,24 +10,41 @@ pub(crate) struct MpdClient {
     connection: mpdrs::Client,
 }
 
+macro_rules! ok_or_reconnect_no_args {
+    ($name: ident, $return_type: ty) => {
+        pub(crate) fn $name(&mut self) -> Result<$return_type> {
+            match self.connection.$name() {
+                Err(Error::Io(_)) => (),
+                Err(Error::Parse(_)) => (),
+                other => return other,
+            };
+
+            debug!("IOError or ParseError, reconnecting...");
+            self.connection = mpdrs::Client::connect(&self.ip)?;
+            self.connection.$name()
+        }
+    };
+}
+macro_rules! ok_or_reconnect_one_arg {
+    ($name: ident, $arg: ident, $arg_type: ty, $return_type: ty) => {
+        pub(crate) fn $name(
+            &mut self,
+            $arg: $arg_type,
+        ) -> Result<$return_type> {
+            match self.connection.$name($arg) {
+                Err(Error::Io(_)) => (),
+                Err(Error::Parse(_)) => (),
+                other => return other,
+            };
+
+            debug!("IOError or ParseError, reconnecting...");
+            self.connection = mpdrs::Client::connect(&self.ip)?;
+            self.connection.$name($arg)
+        }
+    };
+}
+
 impl MpdClient {
-    fn ok_or_reconnect(
-        &mut self,
-        function: &dyn Fn(&mut mpdrs::Client) -> Result<()>,
-    ) -> Result<()> {
-        match function(&mut self.connection) {
-            Ok(_) => return Ok(()),
-            Err(Error::Io(_)) => (),
-            Err(Error::Parse(_)) => (),
-            Err(error) => return Err(error),
-        };
-
-        println!("IOError or ParseError, reconnecting...");
-        self.connection = mpdrs::Client::connect(&self.ip)?;
-        println!("Reconnect succesful, retoggling pause");
-        function(&mut self.connection)
-    }
-
     pub(crate) fn connect(ip: &str) -> Result<Self> {
         println!("Connecting to mpd");
 
@@ -50,75 +67,48 @@ impl MpdClient {
         Ok(())
     }
 
-    pub(crate) fn status(&mut self) -> Result<Status> {
-        self.connection.status()
-    }
+    ok_or_reconnect_no_args! {toggle_pause, ()}
+    ok_or_reconnect_no_args! {play, ()}
+    ok_or_reconnect_no_args! {prev, ()}
+    ok_or_reconnect_no_args! {next, ()}
+    ok_or_reconnect_no_args! {status, Status}
+    ok_or_reconnect_no_args! {playlists, Vec<Playlist>}
+    ok_or_reconnect_no_args! {queue, Vec<Song>}
+    ok_or_reconnect_no_args! {clear, ()}
 
-    pub(crate) fn playlists(&mut self) -> Result<Vec<Playlist>> {
-        todo!()
-    }
+    ok_or_reconnect_one_arg! {rewind, pos, u32, ()}
+    ok_or_reconnect_one_arg! {pl_remove, name, &str, ()}
+    ok_or_reconnect_one_arg! {save, name, &str, ()}
+    ok_or_reconnect_one_arg! {repeat, value, bool, ()}
+    ok_or_reconnect_one_arg! {random, value, bool, ()}
+    ok_or_reconnect_one_arg! {single, value, bool, ()}
+    ok_or_reconnect_one_arg! {consume, value, bool, ()}
 
-    pub(crate) fn toggle_pause(&mut self) -> Result<()> {
-        self.ok_or_reconnect(&mpdrs::Client::toggle_pause)
-    }
-
-    pub(crate) fn play(&mut self) -> Result<()> {
-        self.ok_or_reconnect(&mpdrs::Client::play)
-    }
-
-    pub(crate) fn rewind(&mut self, pos: u32) -> Result<()> {
-        todo!()
-    }
-
-    pub(crate) fn prev(&mut self) -> Result<()> {
-        self.ok_or_reconnect(&mpdrs::Client::prev)
-    }
-
-    pub(crate) fn next(&mut self) -> Result<()> {
-        self.ok_or_reconnect(&mpdrs::Client::next)
-    }
-
-    pub(crate) fn pl_remove(&mut self, name: &str) -> Result<()> {
-        todo!()
-    }
-
-    pub(crate) fn save(&mut self, name: &str) -> Result<()> {
-        todo!()
-    }
-
-    pub(crate) fn clear(&mut self) -> Result<()> {
-        self.ok_or_reconnect(&mpdrs::Client::next)
-    }
-
-    pub(crate) fn load<T: Into<Range>>(
+    pub(crate) fn load<T: Into<Range> + std::marker::Copy>(
         &mut self,
         name: &str,
         range: T,
     ) -> Result<()> {
-        todo!()
-    }
+        match self.connection.load(name, range) {
+            Err(Error::Io(_)) => (),
+            Err(Error::Parse(_)) => (),
+            other => return other,
+        };
 
-    pub(crate) fn queue(&mut self) -> Result<Vec<Song>> {
-        todo!()
+        debug!("IOError or ParseError, reconnecting...");
+        self.connection = mpdrs::Client::connect(&self.ip)?;
+        self.connection.load(name, range)
     }
 
     pub(crate) fn seek(&mut self, place: u32, pos: u32) -> Result<()> {
-        todo!()
-    }
+        match self.connection.seek(place, pos) {
+            Err(Error::Io(_)) => (),
+            Err(Error::Parse(_)) => (),
+            other => return other,
+        };
 
-    pub(crate) fn repeat(&mut self, value: bool) -> Result<()> {
-        todo!()
-    }
-
-    pub(crate) fn random(&mut self, value: bool) -> Result<()> {
-        todo!()
-    }
-
-    pub(crate) fn single(&mut self, value: bool) -> Result<()> {
-        todo!()
-    }
-
-    pub(crate) fn consume(&mut self, value: bool) -> Result<()> {
-        todo!()
+        debug!("IOError or ParseError, reconnecting...");
+        self.connection = mpdrs::Client::connect(&self.ip)?;
+        self.connection.seek(place, pos)
     }
 }
