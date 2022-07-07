@@ -68,7 +68,7 @@ impl UsartPanel {
             .expect("Serial disconnected")
             .unwrap();
 
-        ButtonPress::deserialize(dbg!(line))
+        ButtonPress::deserialize(line)
     }
 }
 

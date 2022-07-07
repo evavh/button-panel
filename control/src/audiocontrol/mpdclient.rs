@@ -1,13 +1,20 @@
-use std::net::TcpStream;
+use std::fmt;
 use std::thread;
 
 use mpdrs::error::{Error, Result};
 use mpdrs::song::Range;
 use mpdrs::{Playlist, Song, Status};
+use tracing::{debug, instrument};
 
 pub(crate) struct MpdClient {
     ip: String,
     connection: mpdrs::Client,
+}
+
+impl fmt::Debug for MpdClient {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("MpdClient").field("ip", &self.ip).finish()
+    }
 }
 
 macro_rules! ok_or_reconnect_no_args {
@@ -45,9 +52,8 @@ macro_rules! ok_or_reconnect_one_arg {
 }
 
 impl MpdClient {
+    #[instrument(ret, err)]
     pub(crate) fn connect(ip: &str) -> Result<Self> {
-        println!("Connecting to mpd");
-
         let connection = mpdrs::Client::connect(ip)?;
         Ok(MpdClient {
             ip: ip.to_owned(),
@@ -55,6 +61,7 @@ impl MpdClient {
         })
     }
 
+    #[instrument(ret, err)]
     pub(crate) fn rescan(&mut self) -> Result<()> {
         use mpdrs::Idle;
 

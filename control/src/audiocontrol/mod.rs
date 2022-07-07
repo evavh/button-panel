@@ -1,4 +1,5 @@
 use std::thread;
+use std::fmt;
 
 use mpdrs::client::Client;
 use mpdrs::error::Error;
@@ -10,7 +11,9 @@ use db::Db;
 
 mod mpdclient;
 use mpdclient::MpdClient;
+use tracing::{info, instrument};
 
+#[derive(Debug)]
 enum Direction {
     Next,
     Previous,
@@ -83,6 +86,14 @@ pub(crate) struct AudioController {
     pub(crate) mode: AudioMode,
 }
 
+impl fmt::Debug for AudioController {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("AudioController")
+            .field("mode", &self.mode)
+            .finish()
+    }
+}
+
 impl AudioController {
     pub(crate) fn new(ip: &str) -> Self {
         let client = MpdClient::connect(ip).unwrap();
@@ -96,9 +107,8 @@ impl AudioController {
     }
 
     pub(crate) fn rescan(&mut self) {
-        println!("Rescanning mpd library");
+        info!("Rescanning mpd library");
         self.client.rescan().unwrap();
-        println!("Done rescanning");
     }
 
     fn playing(&mut self) -> bool {
@@ -111,15 +121,14 @@ impl AudioController {
     }
 
     pub(crate) fn toggle_playback(&mut self) {
-        println!("Toggling playback");
-
+        info!("Toggle playback");
         self.client
             .toggle_pause()
             .expect("Something went wrong toggling playback");
     }
 
     pub(crate) fn rewind(&mut self) {
-        println!("Rewinding by 15 seconds");
+        info!("Rewinding by 15 seconds");
 
         self.client.play().unwrap();
         let position: u32 = self
@@ -136,7 +145,7 @@ impl AudioController {
     }
 
     pub(crate) fn skip(&mut self) {
-        println!("Skipping by 15 seconds");
+        info!("Skipping by 15 seconds");
 
         self.client.play().unwrap();
         let position: u32 = self
@@ -152,14 +161,15 @@ impl AudioController {
     }
 
     pub(crate) fn previous(&mut self) {
-        println!("Going to previous track");
+        info!("Going to previous track");
 
         self.client.play().unwrap();
         self.client.prev().unwrap();
     }
 
+    #[instrument]
     pub(crate) fn next(&mut self) {
-        println!("Going to next track");
+        info!("Next");
 
         self.client.play().unwrap();
 
@@ -174,6 +184,7 @@ impl AudioController {
         };
     }
 
+    #[instrument]
     fn switch_playlist(&mut self, direction: Direction) {
         let current_playlist_name =
             match self.database.fetch_playlist_name(&self.mode) {
@@ -191,7 +202,7 @@ impl AudioController {
             current_playlist_name
         };
 
-        println!("Switching to playlist {}", new_playlist_name);
+        info!("Switching to playlist {}", new_playlist_name);
         self.load_playlist(&new_playlist_name);
         self.database
             .store_playlist_name(&self.mode, &new_playlist_name);
@@ -222,7 +233,7 @@ impl AudioController {
         self.save_playlist_if_necessary(&current_playlist_name);
 
         self.mode.next();
-        println!("Switching to mode {:?}", self.mode);
+        info!("Switching to mode {:?}", self.mode);
 
         let new_playlist_name = self.database.fetch_playlist_name(&self.mode);
         let new_playlist_name = if let Some(playlist_name) = new_playlist_name {
@@ -249,6 +260,7 @@ impl AudioController {
         }
     }
 
+    #[instrument(ret)]
     fn first_playlist_for_mode(&mut self) -> Option<String> {
         let playlists = self.get_playlists();
         for playlist in playlists {
@@ -259,6 +271,7 @@ impl AudioController {
         None
     }
 
+    #[instrument(ret)]
     fn playlist_for_mode(
         &mut self,
         direction: Direction,

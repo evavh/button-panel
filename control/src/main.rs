@@ -1,6 +1,7 @@
 use clap::Parser;
 use color_eyre::eyre::Context;
 use color_eyre::Result;
+use tracing::warn;
 
 use crate::audiocontrol::AudioController;
 mod audiocontrol;
@@ -18,6 +19,7 @@ struct Args {
 #[tokio::main]
 async fn main() -> Result<()> {
     color_eyre::install()?;
+    setup_tracing();
     let args = Args::parse();
 
     if args.setup {
@@ -46,7 +48,28 @@ async fn main() -> Result<()> {
             (_, Long(TopLeft)) => audio.prev_playlist(),
             (_, Long(TopRight)) => audio.next_playlist(),
             (_, Long(TopMiddle)) => audio.next_mode(),
-            _ => println!("Unimplemented buttonpress: {:?}", button_press),
+            _ => warn!("Unimplemented buttonpress: {:?}", button_press),
         }
     }
+}
+
+pub fn setup_tracing() {
+    use tracing_error::ErrorLayer;
+    use tracing_subscriber::fmt;
+    use tracing_subscriber::prelude::*;
+    use tracing_subscriber::EnvFilter;
+
+    let filter = EnvFilter::from_default_env()
+        .add_directive("control=info".parse().unwrap())
+        .add_directive("warn".parse().unwrap());
+
+    let fmt_layer = fmt::layer().pretty().with_line_number(true);
+
+    // console_subscriber::init();
+    tracing_subscriber::registry()
+        .with(ErrorLayer::default())
+        .with(filter)
+        .with(fmt_layer)
+        .try_init()
+        .unwrap();
 }

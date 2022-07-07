@@ -18,3 +18,7 @@ bytes = "1"
 futures = "0.3"
 
 protocol = { git = "https://github.com/evavh/button-panel" }
+
+tracing = { version = "0.1" }
+tracing-error = "0.2"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }

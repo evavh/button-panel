@@ -19,6 +19,7 @@ impl Position {
     }
 }
 
+#[derive(Debug)]
 pub(crate) struct Db {
     database: sled::Db,
 }
@@ -26,7 +27,11 @@ pub(crate) struct Db {
 impl Db {
     pub(crate) fn open() -> Self {
         Db {
-            database: sled::open("database").unwrap(),
+            database: sled::Config::default()
+                .path("database")
+                .cache_capacity(1_000_000)
+                .open()
+                .unwrap(),
         }
     }
 
