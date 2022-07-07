@@ -182,6 +182,15 @@ impl AudioController {
         };
     }
 
+    fn apply_shuffle(&mut self, playlist_name: &str) {
+        if playlist_name.ends_with("_shuf") {
+            self.client.random(true).unwrap();
+        } else {
+            let random = self.mode.settings().random;
+            self.client.random(random).unwrap();
+        }
+    }
+
     #[instrument]
     fn switch_playlist(&mut self, direction: Direction) {
         let current_playlist_name =
@@ -204,6 +213,7 @@ impl AudioController {
         self.load_playlist(&new_playlist_name);
         self.database
             .store_playlist_name(&self.mode, &new_playlist_name);
+        self.apply_shuffle(&new_playlist_name);
 
         let new_position = self.database.fetch_position(&new_playlist_name);
         self.load_position(new_position);
@@ -248,6 +258,7 @@ impl AudioController {
         self.load_position(new_position);
 
         self.apply_settings(self.mode.settings());
+        self.apply_shuffle(&new_playlist_name);
     }
 
     fn save_playlist_if_necessary(&mut self, playlist_name: &str) {
