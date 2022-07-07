@@ -1,10 +1,8 @@
-use std::thread;
 use std::fmt;
 
-use mpdrs::client::Client;
 use mpdrs::error::Error;
 use mpdrs::status::State::Play;
-use mpdrs::{Idle, Playlist};
+use mpdrs::Playlist;
 
 mod db;
 use db::Db;

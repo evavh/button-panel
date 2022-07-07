@@ -4,7 +4,6 @@ use std::path::Path;
 use std::thread;
 
 use bytes::BytesMut;
-use color_eyre::eyre::WrapErr;
 use color_eyre::{eyre::eyre, Help, Result};
 use futures::stream::StreamExt;
 use tokio_serial::{SerialPortBuilderExt, SerialStream};
