@@ -10,11 +10,13 @@ use panel::Panel;
 
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
-struct Args {
+pub struct Args {
     #[clap(short, long)]
     setup: bool,
     /// path to the USB device, for example: /dev/ttyUSB0
     tty: String,
+    /// ip:port for the mpd server
+    ip: String,
 }
 
 #[tokio::main]
@@ -31,11 +33,11 @@ async fn main() -> Result<()> {
     let panel = panel::UsartPanel::try_connect(&args.tty)
         .wrap_err("Could not connect to Panel")?;
 
-    run(panel).await
+    run(panel, args).await
 }
 
-pub async fn run(mut panel: impl Panel) -> Result<()> {
-    let mut audio = AudioController::new("192.168.1.101:6600");
+pub async fn run(mut panel: impl Panel, args: Args) -> Result<()> {
+    let mut audio = AudioController::new(&args.ip);
     audio.rescan();
 
     loop {

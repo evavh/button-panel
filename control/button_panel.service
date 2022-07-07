@@ -8,7 +8,7 @@ Wants=network-online.target
 [Service]
 Environment="RUST_BACKTRACE=1"
 WorkingDirectory=<DIR>
-ExecStart=<DIR>/button_panel /dev/ttyUSB1
+ExecStart=<DIR>/button_panel /dev/ttyUSB1 127.0.0.1:6600
 ExecStop=/bin/kill -s SIGKILL $MAINPID
 User=<USER>
 Group=<USER>
