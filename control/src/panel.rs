@@ -9,6 +9,7 @@ use color_eyre::{eyre::eyre, Help, Result};
 use futures::stream::StreamExt;
 use tokio_serial::{SerialPortBuilderExt, SerialStream};
 use tokio_util::codec::{Decoder, Encoder, Framed};
+use async_trait::async_trait;
 
 use protocol::{Button, ButtonPress};
 
@@ -43,6 +44,11 @@ impl Encoder<String> for LineCodec {
     }
 }
 
+#[async_trait]
+pub trait Panel {
+    async fn recv(&mut self) -> Result<ButtonPress, &'static str>;
+}
+
 pub(crate) struct UsartPanel {
     reader: Framed<SerialStream, LineCodec>,
 }
@@ -59,8 +65,11 @@ impl UsartPanel {
 
         Ok(Self { reader })
     }
+}
 
-    pub(crate) async fn recv(&mut self) -> Result<ButtonPress, &'static str> {
+#[async_trait]
+impl Panel for UsartPanel {
+    async fn recv(&mut self) -> Result<ButtonPress, &'static str> {
         let line = self
             .reader
             .next()
@@ -88,10 +97,13 @@ impl MockPanel {
         actions.reverse();
         Ok(MockPanel { actions })
     }
+}
 
-    pub(crate) async fn recv(&mut self) -> Option<ButtonPress> {
+#[async_trait]
+impl Panel for MockPanel {
+    async fn recv(&mut self) -> Result<ButtonPress, &'static str> {
         thread::sleep(time::Duration::from_secs(2));
-        self.actions.pop()
+        self.actions.pop().ok_or("No more actions in MockPanel")
     }
 }
 

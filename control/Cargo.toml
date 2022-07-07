@@ -16,6 +16,7 @@ tokio = { version = "^1.8", features = ["macros", "rt-multi-thread", "process", 
 tokio-util = { version = "0.7", features = ["codec"] }
 bytes = "1"
 futures = "0.3"
+async-trait = "0.1.56"
 
 protocol = { git = "https://github.com/evavh/button-panel" }
 
