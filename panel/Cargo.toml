@@ -25,4 +25,4 @@ nb = "1.0.0"
 usb-device = "0.2"
 usbd-serial = "0.1.1"
 
-protocol = { path = "../protocol" }
+protocol = { git = "https://github.com/evavh/button-panel" }
