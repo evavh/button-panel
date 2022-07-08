@@ -25,7 +25,6 @@ defmt::timestamp! {"{=u64}", {
 }
 
 use embassy::executor::Spawner;
-use embassy::time::{Duration, Timer};
 use embassy_stm32::dma::NoDma;
 use embassy_stm32::exti::ExtiInput;
 use embassy_stm32::gpio::{Input, Pin, Pull};
@@ -78,7 +77,7 @@ async fn wait_for_button<'d, T: Pin>(
         };
         debug!("Button {} pressed for {}ms", name, press_millis);
 
-        let mut buf = [0, '\n' as u8];
+        let mut buf = [0, b'\n'];
         buf[0] = button_press.serialize();
         let mut usart = usart.lock().await;
         unwrap!(usart.blocking_write(&buf));

@@ -263,8 +263,8 @@ impl AudioController {
 
     fn save_playlist_if_necessary(&mut self, playlist_name: &str) {
         if self.mode.settings().save_playlist {
-            self.client.pl_remove(&playlist_name).unwrap();
-            self.client.save(&playlist_name).unwrap();
+            self.client.pl_remove(playlist_name).unwrap();
+            self.client.save(playlist_name).unwrap();
         }
     }
 
@@ -292,16 +292,15 @@ impl AudioController {
 
         playlist_names.sort();
 
-        match direction {
-            Direction::Previous => playlist_names.reverse(),
-            _ => (),
+        if let Direction::Previous = direction {
+            playlist_names.reverse()
         }
         let mut playlist_names = playlist_names.iter().cycle().peekable();
 
         while *playlist_names.peek().unwrap() != current_playlist_name {
             playlist_names.next();
         }
-        playlist_names.skip(1).next().map(|s| s.to_owned())
+        playlist_names.nth(1).map(|s| s.to_owned())
     }
 
     fn store_position(&mut self, playlist_name: &str) {

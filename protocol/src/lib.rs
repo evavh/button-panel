@@ -1,7 +1,7 @@
 #![no_std]
 use defmt::Format;
 
-#[derive(Format, Clone, Copy, PartialEq, Debug)]
+#[derive(Format, Clone, Copy, PartialEq, Eq, Debug)]
 #[repr(u8)]
 pub enum Button {
     TopLeft = 1,
