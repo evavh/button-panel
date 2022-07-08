@@ -31,7 +31,7 @@ impl Button {
     }
 }
 
-#[derive(Format, Clone, Copy, PartialEq, Debug)]
+#[derive(Format, Clone, Copy, PartialEq, Eq, Debug)]
 pub enum ButtonPress {
     Short(Button),
     Long(Button),
