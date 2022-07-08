@@ -46,15 +46,6 @@ async fn main(_spawner: Spawner, p: Peripherals) -> ! {
     let usart = Uart::new(p.USART1, p.PA10, p.PA9, NoDma, NoDma, config);
     let usart: UsartMutex = Mutex::new(usart);
 
-    // let mut buf = [0, '\n' as u8];
-    /* loop {
-        let buttonpress = ButtonPress::Short(Button::TopMiddle);
-        buf[0] = buttonpress.serialize();
-        let mut usart = usart.lock().await;
-        unwrap!(usart.blocking_write(&buf));
-        Timer::after(Duration::from_millis(300)).await;
-    } */
-
     let a = wait_for_button(&usart, p.PB12, p.EXTI12, Button::TopLeft);
     let b = wait_for_button(&usart, p.PB13, p.EXTI13, Button::TopMiddle);
     let c = wait_for_button(&usart, p.PB1, p.EXTI1, Button::TopRight);
@@ -78,12 +69,14 @@ async fn wait_for_button<'d, T: Pin>(
         let press_time = Instant::now();
         button.wait_for_low().await;
 
-        let button_press = match press_time.elapsed().as_millis() {
+        let press_millis = press_time.elapsed().as_millis();
+        let button_press = match press_millis {
             0..=50 => continue,
-            51..=800 => ButtonPress::Short(name),
-            801..=2000 => ButtonPress::Long(name),
+            51..=400 => ButtonPress::Short(name),
+            401..=2000 => ButtonPress::Long(name),
             _ => continue,
         };
+        debug!("Button {} pressed for {}ms", name, press_millis);
 
         let mut buf = [0, '\n' as u8];
         buf[0] = button_press.serialize();
