@@ -48,12 +48,12 @@ pub trait Panel {
     async fn recv(&mut self) -> Result<ButtonPress, &'static str>;
 }
 
-pub(crate) struct UsartPanel {
+pub struct UsartPanel {
     reader: Framed<SerialStream, LineCodec>,
 }
 
 impl UsartPanel {
-    pub(crate) fn try_connect(tty_path: &str) -> Result<Self> {
+    pub fn try_connect(tty_path: &str) -> Result<Self> {
         let mut port = tokio_serial::new(tty_path, 9600).open_native_async()?;
 
         #[cfg(unix)]
@@ -85,7 +85,7 @@ pub(crate) struct MockPanel {
 }
 
 impl MockPanel {
-    pub(crate) fn try_connect() -> Result<Self> {
+    pub fn try_connect() -> Result<Self> {
         let mut actions = vec![
             ButtonPress::Short(Button::TopMiddle), //play (Music)
             ButtonPress::Long(Button::TopRight),   //next playlist (Music)
@@ -106,7 +106,7 @@ impl Panel for MockPanel {
     }
 }
 
-pub(crate) fn setup_udev_access() -> Result<()> {
+pub fn setup_udev_access() -> Result<()> {
     let path = Path::new("/etc/udev/rules.d/70-dvdva.rules");
     let rule = r###"ATTRS{idVendor}=="0483", ATTRS{idProduct}=="3748", TAG+="uaccess""###;
     if path.exists() {
