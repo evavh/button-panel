@@ -4,21 +4,20 @@ use color_eyre::Result;
 
 use control::panel::UsartPanel;
 
-use control::*;
-
 #[tokio::main]
 async fn main() -> Result<()> {
     color_eyre::install()?;
-    setup_tracing();
-    let args = Args::parse();
+    control::setup_tracing();
+    let args = control::Args::parse();
 
     if args.setup {
-        panel::setup_udev_access().wrap_err("Could not set up udev rules")?;
+        control::panel::setup_udev_access()
+            .wrap_err("Could not set up udev rules")?;
         return Ok(());
     }
 
     let panel = UsartPanel::try_connect(&args.tty)
         .wrap_err("Could not connect to Panel")?;
 
-    run(panel, args).await
+    control::run(panel, args).await
 }
