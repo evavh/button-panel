@@ -8,7 +8,7 @@ pub mod panel;
 use self::panel::Panel;
 use audiocontrol::AudioController;
 
-#[derive(Parser, Debug)]
+#[derive(Parser, Debug, Default)]
 #[clap(author, version, about, long_about = None)]
 pub struct Args {
     #[clap(short, long)]
@@ -16,7 +16,7 @@ pub struct Args {
     /// path to the USB device, for example: /dev/ttyUSB0
     pub tty: String,
     /// ip:port for the mpd server
-    ip: String,
+    pub ip: String,
 }
 
 pub async fn run(mut panel: impl Panel, args: Args) -> Result<()> {

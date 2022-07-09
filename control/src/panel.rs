@@ -80,7 +80,7 @@ impl Panel for UsartPanel {
     }
 }
 
-pub(crate) struct MockPanel {
+pub struct MockPanel {
     actions: Vec<ButtonPress>,
 }
 
