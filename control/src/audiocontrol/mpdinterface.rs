@@ -6,12 +6,12 @@ use mpdrs::song::Range;
 use mpdrs::{Playlist, Song, Status};
 use tracing::{debug, instrument};
 
-pub(crate) struct MpdClient {
+pub(crate) struct MpdInterface {
     ip: String,
-    connection: mpdrs::Client,
+    client: mpdrs::Client,
 }
 
-impl fmt::Debug for MpdClient {
+impl fmt::Debug for MpdInterface {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("MpdClient").field("ip", &self.ip).finish()
     }
@@ -20,15 +20,15 @@ impl fmt::Debug for MpdClient {
 macro_rules! ok_or_reconnect_no_args {
     ($name: ident, $return_type: ty) => {
         pub(crate) fn $name(&mut self) -> Result<$return_type> {
-            match self.connection.$name() {
+            match self.client.$name() {
                 Err(Error::Io(_)) => (),
                 Err(Error::Parse(_)) => (),
                 other => return other,
             };
 
             debug!("IOError or ParseError, reconnecting...");
-            self.connection = mpdrs::Client::connect(&self.ip)?;
-            self.connection.$name()
+            self.client = mpdrs::Client::connect(&self.ip)?;
+            self.client.$name()
         }
     };
 }
@@ -38,26 +38,26 @@ macro_rules! ok_or_reconnect_one_arg {
             &mut self,
             $arg: $arg_type,
         ) -> Result<$return_type> {
-            match self.connection.$name($arg) {
+            match self.client.$name($arg) {
                 Err(Error::Io(_)) => (),
                 Err(Error::Parse(_)) => (),
                 other => return other,
             };
 
             debug!("IOError or ParseError, reconnecting...");
-            self.connection = mpdrs::Client::connect(&self.ip)?;
-            self.connection.$name($arg)
+            self.client = mpdrs::Client::connect(&self.ip)?;
+            self.client.$name($arg)
         }
     };
 }
 
-impl MpdClient {
+impl MpdInterface {
     #[instrument(ret, err)]
     pub(crate) fn connect(ip: &str) -> Result<Self> {
-        let connection = mpdrs::Client::connect(ip)?;
-        Ok(MpdClient {
+        let client = mpdrs::Client::connect(ip)?;
+        Ok(MpdInterface {
             ip: ip.to_owned(),
-            connection,
+            client,
         })
     }
 
@@ -69,7 +69,7 @@ impl MpdClient {
         let thread_join_handle = thread::spawn(move || {
             watcher.wait(&[mpdrs::idle::Subsystem::Update])
         });
-        self.connection.rescan()?;
+        self.client.rescan()?;
         thread_join_handle.join().unwrap()?;
         Ok(())
     }
@@ -96,26 +96,26 @@ impl MpdClient {
         name: &str,
         range: T,
     ) -> Result<()> {
-        match self.connection.load(name, range) {
+        match self.client.load(name, range) {
             Err(Error::Io(_)) => (),
             Err(Error::Parse(_)) => (),
             other => return other,
         };
 
         debug!("IOError or ParseError, reconnecting...");
-        self.connection = mpdrs::Client::connect(&self.ip)?;
-        self.connection.load(name, range)
+        self.client = mpdrs::Client::connect(&self.ip)?;
+        self.client.load(name, range)
     }
 
     pub(crate) fn seek(&mut self, place: u32, pos: u32) -> Result<()> {
-        match self.connection.seek(place, pos) {
+        match self.client.seek(place, pos) {
             Err(Error::Io(_)) => (),
             Err(Error::Parse(_)) => (),
             other => return other,
         };
 
         debug!("IOError or ParseError, reconnecting...");
-        self.connection = mpdrs::Client::connect(&self.ip)?;
-        self.connection.seek(place, pos)
+        self.client = mpdrs::Client::connect(&self.ip)?;
+        self.client.seek(place, pos)
     }
 }

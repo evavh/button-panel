@@ -7,8 +7,8 @@ use mpdrs::Playlist;
 mod db;
 use db::Db;
 
-mod mpdclient;
-use mpdclient::MpdClient;
+mod mpdinterface;
+use mpdinterface::MpdInterface;
 use tracing::{info, instrument};
 
 #[derive(Debug)]
@@ -79,7 +79,7 @@ impl AudioMode {
 }
 
 pub(crate) struct AudioController {
-    client: MpdClient,
+    client: MpdInterface,
     database: Db,
     pub(crate) mode: AudioMode,
 }
@@ -94,7 +94,7 @@ impl fmt::Debug for AudioController {
 
 impl AudioController {
     pub(crate) fn new(ip: &str) -> Self {
-        let client = MpdClient::connect(ip).unwrap();
+        let client = MpdInterface::connect(ip).unwrap();
         let mut controller = AudioController {
             client,
             database: Db::open(),
