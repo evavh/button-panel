@@ -125,8 +125,8 @@ impl AudioController {
             .expect("Something went wrong toggling playback");
     }
 
-    pub(crate) fn rewind(&mut self) {
-        info!("Rewinding by 15 seconds");
+    pub(crate) fn rewind_by(&mut self, seconds: u32) {
+        info!("Rewinding by {} seconds", seconds);
 
         self.client.play().unwrap();
         let position: u32 = self
@@ -139,7 +139,9 @@ impl AudioController {
             .try_into()
             .unwrap();
         self.client.play().unwrap();
-        self.client.rewind(position.saturating_sub(15)).unwrap();
+        self.client
+            .rewind(position.saturating_sub(seconds))
+            .unwrap();
     }
 
     pub(crate) fn skip(&mut self) {
