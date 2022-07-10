@@ -80,7 +80,7 @@ impl AudioMode {
 
 pub(crate) struct AudioController {
     client: MpdInterface,
-    database: Db,
+    db: Db,
     pub(crate) mode: AudioMode,
 }
 
@@ -97,7 +97,7 @@ impl AudioController {
         let client = MpdInterface::connect(ip).unwrap();
         let mut controller = AudioController {
             client,
-            database: Db::open("database"),
+            db: Db::open("database"),
             mode: AudioMode::Music,
         };
         controller.playing();
@@ -194,7 +194,7 @@ impl AudioController {
     #[instrument]
     fn switch_playlist(&mut self, direction: Direction) {
         let current_playlist_name =
-            match self.database.fetch_playlist_name(&self.mode) {
+            match self.db.fetch_playlist_name(&self.mode) {
                 Some(playlist_name) => playlist_name,
                 None => self.first_playlist_for_mode().unwrap(),
             };
@@ -211,11 +211,10 @@ impl AudioController {
 
         info!("Switching to playlist {}", new_playlist_name);
         self.load_playlist(&new_playlist_name);
-        self.database
-            .store_playlist_name(&self.mode, &new_playlist_name);
+        self.db.store_playlist_name(&self.mode, &new_playlist_name);
         self.apply_shuffle(&new_playlist_name);
 
-        let new_position = self.database.fetch_position(&new_playlist_name);
+        let new_position = self.db.fetch_position(&new_playlist_name);
         self.load_position(new_position);
     }
 
@@ -233,7 +232,7 @@ impl AudioController {
         self.client.play().unwrap();
 
         let current_playlist_name =
-            match self.database.fetch_playlist_name(&self.mode) {
+            match self.db.fetch_playlist_name(&self.mode) {
                 Some(playlist_name) => playlist_name,
                 None => self.first_playlist_for_mode().unwrap(),
             };
@@ -243,18 +242,17 @@ impl AudioController {
         self.mode.next();
         info!("Switching to mode {:?}", self.mode);
 
-        let new_playlist_name = self.database.fetch_playlist_name(&self.mode);
+        let new_playlist_name = self.db.fetch_playlist_name(&self.mode);
         let new_playlist_name = if let Some(playlist_name) = new_playlist_name {
             playlist_name
         } else {
             let playlist_name = self.first_playlist_for_mode().unwrap();
-            self.database
-                .store_playlist_name(&self.mode, &playlist_name);
+            self.db.store_playlist_name(&self.mode, &playlist_name);
             playlist_name
         };
         self.load_playlist(&new_playlist_name);
 
-        let new_position = self.database.fetch_position(&new_playlist_name);
+        let new_position = self.db.fetch_position(&new_playlist_name);
         self.load_position(new_position);
 
         self.apply_settings(self.mode.settings());
@@ -318,7 +316,7 @@ impl AudioController {
             };
 
         let position = db::Position { pos_in_pl, elapsed };
-        self.database.store_position(playlist_name, position);
+        self.db.store_position(playlist_name, position);
     }
 
     fn load_playlist(&mut self, playlist_name: &str) {
