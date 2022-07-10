@@ -25,10 +25,10 @@ pub(crate) struct Db {
 }
 
 impl Db {
-    pub(crate) fn open() -> Self {
+    pub(crate) fn open(path: &str) -> Self {
         Db {
             database: sled::Config::default()
-                .path("database")
+                .path(path)
                 .cache_capacity(1_000_000)
                 .open()
                 .unwrap(),
@@ -77,5 +77,42 @@ impl Db {
         self.database
             .insert(key.as_bytes(), position.to_bytes())
             .unwrap();
+    }
+
+    pub(crate) fn fetch_last_played(&self, mode: &AudioMode) -> Option<u64> {
+        let key = mode.to_prefix().to_owned() + "last_played";
+        self.database
+            .get(key.as_bytes())
+            .unwrap()
+            .map(|bytes| u64::from_ne_bytes(bytes[..8].try_into().unwrap()))
+    }
+
+    pub(crate) fn store_last_played(&self, mode: &AudioMode, last_played: u64) {
+        let key = mode.to_prefix().to_owned() + "last_played";
+
+        self.database
+            .insert(key.as_bytes(), &last_played.to_ne_bytes())
+            .unwrap();
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    #[test]
+    fn fetch_and_store_last_played() {
+        let db = Db::open("test_db");
+
+        let mode = AudioMode::Music;
+        let last_played = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_secs();
+
+        db.store_last_played(&mode, last_played);
+        let fetched = db.fetch_last_played(&mode).unwrap();
+        assert_eq!(fetched, last_played);
     }
 }

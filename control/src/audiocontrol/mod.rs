@@ -97,7 +97,7 @@ impl AudioController {
         let client = MpdInterface::connect(ip).unwrap();
         let mut controller = AudioController {
             client,
-            database: Db::open(),
+            database: Db::open("database"),
             mode: AudioMode::Music,
         };
         controller.playing();
