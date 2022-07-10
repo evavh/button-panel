@@ -1,4 +1,5 @@
 use super::AudioMode;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 #[derive(Debug)]
 pub(crate) struct Position {
@@ -79,6 +80,13 @@ impl Db {
             .unwrap();
     }
 
+    pub(crate) fn now_timestamp() -> u64 {
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_secs()
+    }
+
     pub(crate) fn fetch_last_played(&self, mode: &AudioMode) -> Option<u64> {
         let key = mode.to_prefix().to_owned() + "last_played";
         self.database
@@ -99,17 +107,13 @@ impl Db {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::time::{SystemTime, UNIX_EPOCH};
 
     #[test]
     fn fetch_and_store_last_played() {
         let db = Db::open("test_db");
 
         let mode = AudioMode::Music;
-        let last_played = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_secs();
+        let last_played = Db::now_timestamp();
 
         db.store_last_played(&mode, last_played);
         let fetched = db.fetch_last_played(&mode).unwrap();
