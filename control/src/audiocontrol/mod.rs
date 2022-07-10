@@ -118,6 +118,15 @@ impl AudioController {
         self.client.playlists().unwrap()
     }
 
+    #[instrument(ret)]
+    fn rewind_time(last_played: u64) -> u32 {
+        let since_last_played = Db::now_timestamp() - last_played;
+        info!("{}s since last played", since_last_played);
+        (0.5 * (since_last_played as f64).sqrt())
+            .round()
+            .clamp(0.0, 30.0) as u32
+    }
+
     pub(crate) fn toggle_playback(&mut self) {
         info!("Toggle playback");
         self.client
@@ -344,6 +353,14 @@ impl AudioController {
                 }
             }
             Err(other_error) => panic!("Unexpected error: {other_error}"),
+        }
+    }
+
+    fn seek_in_cur(&mut self, elapsed: u32) {
+        if let Some(song) = self.client.currentsong().unwrap() {
+            if let Some(place) = song.place {
+                self.seek_to(place.pos, elapsed);
+            }
         }
     }
 

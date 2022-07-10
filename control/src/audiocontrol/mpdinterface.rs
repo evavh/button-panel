@@ -81,6 +81,7 @@ impl MpdInterface {
     ok_or_reconnect_no_args! {status, Status}
     ok_or_reconnect_no_args! {playlists, Vec<Playlist>}
     ok_or_reconnect_no_args! {queue, Vec<Song>}
+    ok_or_reconnect_no_args! {currentsong, Option<Song>}
     ok_or_reconnect_no_args! {clear, ()}
 
     ok_or_reconnect_one_arg! {rewind, pos, u32, ()}
