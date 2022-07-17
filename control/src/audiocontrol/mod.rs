@@ -128,10 +128,33 @@ impl AudioController {
     }
 
     pub(crate) fn toggle_playback(&mut self) {
+        use AudioMode::*;
+        const TO_BEGIN_MIN: u64 = 10;
+
         info!("Toggle playback");
+        let was_playing = self.playing();
+
         self.client
             .toggle_pause()
             .expect("Something went wrong toggling playback");
+
+        let last_played = self.db.fetch_last_played(&self.mode);
+
+        match dbg!((was_playing, &self.mode, last_played)) {
+            (true, _, _) => {
+                self.db.store_last_played(&self.mode, Db::now_timestamp())
+            }
+
+            (false, Book | Podcast, Some(last_played)) => {
+                self.rewind_by(Self::rewind_time(last_played));
+            }
+            (false, Music | Meditation, Some(last_played)) => {
+                if Db::now_timestamp() - last_played > TO_BEGIN_MIN * 60 {
+                    self.seek_in_cur(0)
+                }
+            }
+            (_, _, None) => (),
+        };
     }
 
     pub(crate) fn rewind_by(&mut self, seconds: u32) {
