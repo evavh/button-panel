@@ -145,23 +145,30 @@ impl AudioController {
 
     fn rewind_after_pause(&mut self) {
         use AudioMode::*;
-        const TO_BEGIN_MIN: u64 = 60;
+        const SONG_RESTART_THRESHOLD: u64 = 1;
+        const ALMOST_OVER: u32 = 10;
 
-        if let Some(current_playlist) = self.db.fetch_playlist_name(&self.mode)
-        {
-            let last_played = self.db.fetch_last_played(&current_playlist);
+        let current_playlist = match self.db.fetch_playlist_name(&self.mode) {
+            Some(current_playlist) => current_playlist,
+            None => return,
+        };
 
-            match dbg!((&self.mode, last_played)) {
-                (Book | Podcast, Some(last_played)) => {
-                    self.rewind_by(Self::rewind_time(last_played));
+        let last_played = self.db.fetch_last_played(&current_playlist);
+
+        match dbg!((&self.mode, last_played)) {
+            (Book | Podcast, Some(last_played)) => {
+                self.rewind_by(Self::rewind_time(last_played));
+            }
+            (Music | Meditation, Some(last_played)) => {
+                let time_left = self.get_song_length() - self.get_position();
+                if Db::now_timestamp() - last_played
+                    > SONG_RESTART_THRESHOLD * 60
+                    && time_left > ALMOST_OVER
+                {
+                    self.seek_in_cur(0)
                 }
-                (Music | Meditation, Some(last_played)) => {
-                    if Db::now_timestamp() - last_played > TO_BEGIN_MIN * 60 {
-                        self.seek_in_cur(0)
-                    }
-                }
-                (_, None) => (),
-            };
+            }
+            (_, None) => (),
         }
     }
 
@@ -186,6 +193,28 @@ impl AudioController {
         }
     }
 
+    fn get_song_length(&mut self) -> u32 {
+        self.client
+            .status()
+            .unwrap()
+            .duration
+            .unwrap()
+            .as_secs()
+            .try_into()
+            .unwrap()
+    }
+
+    fn get_position(&mut self) -> u32 {
+        self.client
+            .status()
+            .unwrap()
+            .elapsed
+            .unwrap()
+            .as_secs()
+            .try_into()
+            .unwrap()
+    }
+
     pub(crate) fn rewind_by(&mut self, seconds: u32) {
         self.play();
         if seconds == 0 {
@@ -194,15 +223,7 @@ impl AudioController {
         }
         info!("Rewinding by {} seconds", seconds);
 
-        let position: u32 = self
-            .client
-            .status()
-            .unwrap()
-            .elapsed
-            .unwrap()
-            .as_secs()
-            .try_into()
-            .unwrap();
+        let position = self.get_position();
         self.client
             .rewind(position.saturating_sub(seconds))
             .unwrap();
