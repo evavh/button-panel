@@ -9,7 +9,7 @@ use db::Db;
 
 mod mpdinterface;
 use mpdinterface::MpdInterface;
-use tracing::{info, instrument};
+use tracing::{debug, info, instrument};
 
 #[derive(Debug)]
 enum Direction {
@@ -27,7 +27,7 @@ struct Settings {
     save_playlist: bool,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum AudioMode {
     Music,
     Book,
@@ -120,17 +120,52 @@ impl AudioController {
 
     #[instrument(ret)]
     fn rewind_time(last_played: u64) -> u32 {
+        const MIN_REWIND: u32 = 2;
+
         let since_last_played = Db::now_timestamp() - last_played;
         info!("{}s since last played", since_last_played);
-        (0.5 * (since_last_played as f64).sqrt())
+        let rewind_time = (0.5 * (since_last_played as f64).sqrt())
             .round()
-            .clamp(0.0, 30.0) as u32
+            .clamp(0.0, 30.0) as u32;
+
+        if rewind_time < MIN_REWIND {
+            0
+        } else {
+            rewind_time
+        }
+    }
+
+    fn store_current_pausing(&self) {
+        if let Some(current_playlist) = self.db.fetch_playlist_name(&self.mode)
+        {
+            self.db
+                .store_last_played(&current_playlist, Db::now_timestamp())
+        }
+    }
+
+    fn rewind_after_pause(&mut self) {
+        use AudioMode::*;
+        const TO_BEGIN_MIN: u64 = 60;
+
+        if let Some(current_playlist) = self.db.fetch_playlist_name(&self.mode)
+        {
+            let last_played = self.db.fetch_last_played(&current_playlist);
+
+            match dbg!((&self.mode, last_played)) {
+                (Book | Podcast, Some(last_played)) => {
+                    self.rewind_by(Self::rewind_time(last_played));
+                }
+                (Music | Meditation, Some(last_played)) => {
+                    if Db::now_timestamp() - last_played > TO_BEGIN_MIN * 60 {
+                        self.seek_in_cur(0)
+                    }
+                }
+                (_, None) => (),
+            };
+        }
     }
 
     pub(crate) fn toggle_playback(&mut self) {
-        use AudioMode::*;
-        const TO_BEGIN_MIN: u64 = 10;
-
         info!("Toggle playback");
         let was_playing = self.playing();
 
@@ -138,29 +173,27 @@ impl AudioController {
             .toggle_pause()
             .expect("Something went wrong toggling playback");
 
-        let last_played = self.db.fetch_last_played(&self.mode);
+        if was_playing {
+            self.store_current_pausing()
+        } else {
+            self.rewind_after_pause()
+        }
+    }
 
-        match dbg!((was_playing, &self.mode, last_played)) {
-            (true, _, _) => {
-                self.db.store_last_played(&self.mode, Db::now_timestamp())
-            }
-
-            (false, Book | Podcast, Some(last_played)) => {
-                self.rewind_by(Self::rewind_time(last_played));
-            }
-            (false, Music | Meditation, Some(last_played)) => {
-                if Db::now_timestamp() - last_played > TO_BEGIN_MIN * 60 {
-                    self.seek_in_cur(0)
-                }
-            }
-            (_, _, None) => (),
-        };
+    fn play(&mut self) {
+        if !self.playing() {
+            self.toggle_playback();
+        }
     }
 
     pub(crate) fn rewind_by(&mut self, seconds: u32) {
+        self.play();
+        if seconds == 0 {
+            debug!("0 seconds, not rewinding");
+            return;
+        }
         info!("Rewinding by {} seconds", seconds);
 
-        self.client.play().unwrap();
         let position: u32 = self
             .client
             .status()
@@ -170,7 +203,6 @@ impl AudioController {
             .as_secs()
             .try_into()
             .unwrap();
-        self.client.play().unwrap();
         self.client
             .rewind(position.saturating_sub(seconds))
             .unwrap();
@@ -179,7 +211,7 @@ impl AudioController {
     pub(crate) fn skip(&mut self) {
         info!("Skipping by 15 seconds");
 
-        self.client.play().unwrap();
+        self.play();
         let position: u32 = self
             .client
             .status()
@@ -195,7 +227,7 @@ impl AudioController {
     pub(crate) fn previous(&mut self) {
         info!("Going to previous track");
 
-        self.client.play().unwrap();
+        self.play();
         self.client.prev().unwrap();
     }
 
@@ -203,7 +235,7 @@ impl AudioController {
     pub(crate) fn next(&mut self) {
         info!("Next");
 
-        self.client.play().unwrap();
+        self.play();
 
         match self.client.next() {
             Ok(_) => (),
@@ -234,6 +266,8 @@ impl AudioController {
             };
         self.store_position(&current_playlist_name);
         self.save_playlist_if_necessary(&current_playlist_name);
+        self.db
+            .store_last_played(&current_playlist_name, Db::now_timestamp());
 
         let new_playlist_name = if let Some(playlist_name) =
             self.playlist_for_mode(direction, &current_playlist_name)
@@ -250,20 +284,22 @@ impl AudioController {
 
         let new_position = self.db.fetch_position(&new_playlist_name);
         self.load_position(new_position);
+
+        self.rewind_after_pause();
     }
 
     pub(crate) fn prev_playlist(&mut self) {
-        self.client.play().unwrap();
+        self.play();
         self.switch_playlist(Direction::Previous);
     }
 
     pub(crate) fn next_playlist(&mut self) {
-        self.client.play().unwrap();
+        self.play();
         self.switch_playlist(Direction::Next);
     }
 
     pub(crate) fn next_mode(&mut self) {
-        self.client.play().unwrap();
+        self.play();
 
         let current_playlist_name =
             match self.db.fetch_playlist_name(&self.mode) {
@@ -272,6 +308,8 @@ impl AudioController {
             };
         self.store_position(&current_playlist_name);
         self.save_playlist_if_necessary(&current_playlist_name);
+        self.db
+            .store_last_played(&current_playlist_name, Db::now_timestamp());
 
         self.mode.next();
         info!("Switching to mode {:?}", self.mode);
@@ -288,6 +326,7 @@ impl AudioController {
 
         let new_position = self.db.fetch_position(&new_playlist_name);
         self.load_position(new_position);
+        self.rewind_after_pause();
 
         self.apply_settings(self.mode.settings());
         self.apply_shuffle(&new_playlist_name);

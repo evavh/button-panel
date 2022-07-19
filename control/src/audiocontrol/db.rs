@@ -87,16 +87,16 @@ impl Db {
             .as_secs()
     }
 
-    pub(crate) fn fetch_last_played(&self, mode: &AudioMode) -> Option<u64> {
-        let key = mode.to_prefix().to_owned() + "last_played";
+    pub(crate) fn fetch_last_played(&self, playlist: &str) -> Option<u64> {
+        let key = playlist.to_owned() + "last_played";
         self.database
             .get(key.as_bytes())
             .unwrap()
             .map(|bytes| u64::from_ne_bytes(bytes[..8].try_into().unwrap()))
     }
 
-    pub(crate) fn store_last_played(&self, mode: &AudioMode, last_played: u64) {
-        let key = mode.to_prefix().to_owned() + "last_played";
+    pub(crate) fn store_last_played(&self, playlist: &str, last_played: u64) {
+        let key = playlist.to_owned() + "last_played";
 
         self.database
             .insert(key.as_bytes(), &last_played.to_ne_bytes())

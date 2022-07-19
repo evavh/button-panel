@@ -51,7 +51,7 @@ pub fn setup_tracing() {
     use tracing_subscriber::EnvFilter;
 
     let filter = EnvFilter::from_default_env()
-        .add_directive("control=info".parse().unwrap())
+        .add_directive("control=debug".parse().unwrap())
         .add_directive("warn".parse().unwrap());
 
     let fmt_layer = fmt::layer().pretty().with_line_number(true);

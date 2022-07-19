@@ -75,7 +75,6 @@ impl MpdInterface {
     }
 
     ok_or_reconnect_no_args! {toggle_pause, ()}
-    ok_or_reconnect_no_args! {play, ()}
     ok_or_reconnect_no_args! {prev, ()}
     ok_or_reconnect_no_args! {next, ()}
     ok_or_reconnect_no_args! {status, Status}
