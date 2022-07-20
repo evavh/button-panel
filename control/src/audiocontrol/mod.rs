@@ -319,6 +319,23 @@ impl AudioController {
         self.switch_playlist(Direction::Next);
     }
 
+    /// Meditation mode is only enabled at night
+    fn is_meditation_time() -> bool {
+        use chrono::{naive::NaiveTime, offset::Local};
+
+        let now = Local::now().time();
+        debug!("Checking if it is meditation time: now is {:?}", now);
+        const START_HOUR: u32 = 21;
+        const START_MIN: u32 = 30;
+        const END_HOUR: u32 = 9;
+        const END_MIN: u32 = 0;
+
+        let start = NaiveTime::from_hms(START_HOUR, START_MIN, 0);
+        let end = NaiveTime::from_hms(END_HOUR, END_MIN, 0);
+
+        start < now && now < end
+    }
+
     pub(crate) fn next_mode(&mut self) {
         self.play();
 
@@ -334,6 +351,11 @@ impl AudioController {
 
         self.mode.next();
         info!("Switching to mode {:?}", self.mode);
+
+        if self.mode == AudioMode::Meditation && !Self::is_meditation_time() {
+            self.mode.next();
+            info!("Skipping meditation");
+        }
 
         let new_playlist_name = self.db.fetch_playlist_name(&self.mode);
         let new_playlist_name = if let Some(playlist_name) = new_playlist_name {
