@@ -26,13 +26,15 @@ pub async fn run(mut panel: impl Panel, args: Args) -> Result<()> {
     audio.rescan();
 
     loop {
-        let button_press = panel.recv().await.unwrap();
         use audiocontrol::AudioMode::*;
         use protocol::{Button::*, ButtonPress::*};
+
+        let button_press = panel.recv().await.unwrap();
+
         match (&audio.mode, button_press) {
             (Music | Meditation, Short(TopLeft)) => audio.previous(),
             (Book | Podcast, Short(TopLeft)) => {
-                audio.rewind_by(Duration::from_secs(15))
+                audio.rewind_by(Duration::from_secs(15));
             }
 
             (Music | Meditation, Short(TopRight)) => audio.next(),

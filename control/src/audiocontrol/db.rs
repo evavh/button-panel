@@ -72,7 +72,7 @@ impl Db {
     pub(crate) fn store_position(
         &mut self,
         playlist_name: &str,
-        position: Position,
+        position: &Position,
     ) {
         let key = playlist_name.to_owned() + "_position";
         self.database

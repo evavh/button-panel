@@ -97,8 +97,7 @@ impl MpdInterface {
         range: T,
     ) -> Result<()> {
         match self.client.load(name, range) {
-            Err(Error::Io(_)) => (),
-            Err(Error::Parse(_)) => (),
+            Err(Error::Io(_) | Error::Parse(_)) => (),
             other => return other,
         };
 
@@ -109,8 +108,7 @@ impl MpdInterface {
 
     pub(crate) fn seek(&mut self, place: u32, pos: u32) -> Result<()> {
         match self.client.seek(place, pos) {
-            Err(Error::Io(_)) => (),
-            Err(Error::Parse(_)) => (),
+            Err(Error::Io(_) | Error::Parse(_)) => (),
             other => return other,
         };
 

@@ -1,3 +1,4 @@
+#![allow(clippy::enum_glob_use)]
 use std::fmt;
 use std::time::Duration;
 
@@ -19,6 +20,7 @@ enum Direction {
 }
 
 #[derive(Default)]
+#[allow(clippy::struct_excessive_bools)]
 struct Settings {
     repeat: bool,
     random: bool,
@@ -61,12 +63,7 @@ impl AudioMode {
         use AudioMode::*;
         match self {
             Music => Settings::default(),
-            Book => Settings {
-                consume: true,
-                save_playlist: true,
-                ..Settings::default()
-            },
-            Podcast => Settings {
+            Book | Podcast => Settings {
                 consume: true,
                 save_playlist: true,
                 ..Settings::default()
@@ -125,6 +122,12 @@ impl AudioController {
 
         let since_last_played = Db::now_timestamp() - last_played;
         info!("{}s since last played", since_last_played);
+
+        #[allow(
+            clippy::cast_possible_truncation,
+            clippy::cast_sign_loss,
+            clippy::cast_precision_loss
+        )]
         let rewind_time = (0.5 * (since_last_played as f64).sqrt())
             .round()
             .clamp(0.0, 30.0) as u32;
@@ -140,7 +143,7 @@ impl AudioController {
         if let Some(current_playlist) = self.db.fetch_playlist_name(&self.mode)
         {
             self.db
-                .store_last_played(&current_playlist, Db::now_timestamp())
+                .store_last_played(&current_playlist, Db::now_timestamp());
         }
     }
 
@@ -169,7 +172,7 @@ impl AudioController {
                         > SONG_RESTART_THRESHOLD
                         && time_left > ALMOST_OVER
                     {
-                        self.seek_in_cur(0)
+                        self.seek_in_cur(0);
                     }
                 }
             }
@@ -186,9 +189,9 @@ impl AudioController {
             .expect("Something went wrong toggling playback");
 
         if was_playing {
-            self.store_current_pausing()
+            self.store_current_pausing();
         } else {
-            self.rewind_after_pause()
+            self.rewind_after_pause();
         }
     }
 
@@ -266,9 +269,10 @@ impl AudioController {
         match self.client.next() {
             Ok(_) => (),
             Err(Error::Server(server_error)) => {
-                if server_error.detail != "Not playing" {
-                    panic!("Unexpected ServerError: {server_error}")
-                }
+                assert!(
+                    server_error.detail == "Not playing",
+                    "Unexpected ServerError: {server_error}"
+                );
             }
             Err(other_error) => panic!("Unexpected error: {other_error}"),
         };
@@ -328,13 +332,13 @@ impl AudioController {
     fn is_meditation_time() -> bool {
         use chrono::{naive::NaiveTime, offset::Local};
 
-        let now = Local::now().time();
-        debug!("Checking if it is meditation time: now is {:?}", now);
         const START_HOUR: u32 = 21;
         const START_MIN: u32 = 30;
         const END_HOUR: u32 = 9;
         const END_MIN: u32 = 0;
 
+        let now = Local::now().time();
+        debug!("Checking if it is meditation time: now is {:?}", now);
         let start = NaiveTime::from_hms(START_HOUR, START_MIN, 0);
         let end = NaiveTime::from_hms(END_HOUR, END_MIN, 0);
 
@@ -376,7 +380,7 @@ impl AudioController {
         self.load_position(new_position);
         self.rewind_after_pause();
 
-        self.apply_settings(self.mode.settings());
+        self.apply_settings(&self.mode.settings());
         self.apply_shuffle(&new_playlist_name);
     }
 
@@ -412,14 +416,14 @@ impl AudioController {
         playlist_names.sort();
 
         if let Direction::Previous = direction {
-            playlist_names.reverse()
+            playlist_names.reverse();
         }
         let mut playlist_names = playlist_names.iter().cycle().peekable();
 
         while *playlist_names.peek().unwrap() != current_playlist_name {
             playlist_names.next();
         }
-        playlist_names.nth(1).map(|s| s.to_owned())
+        playlist_names.nth(1).map(std::borrow::ToOwned::to_owned)
     }
 
     fn store_position(&mut self, playlist_name: &str) {
@@ -436,7 +440,7 @@ impl AudioController {
         };
 
         let position = db::Position { pos_in_pl, elapsed };
-        self.db.store_position(playlist_name, position);
+        self.db.store_position(playlist_name, &position);
     }
 
     fn load_playlist(&mut self, playlist_name: &str) {
@@ -457,9 +461,10 @@ impl AudioController {
         match self.client.seek(pos_in_pl, elapsed) {
             Ok(_) => (),
             Err(Error::Server(server_error)) => {
-                if server_error.detail != "Bad song index" {
-                    panic!("Unexpected ServerError: {server_error}")
-                }
+                assert!(
+                    server_error.detail == "Bad song index",
+                    "Unexpected ServerError: {server_error}"
+                );
             }
             Err(other_error) => panic!("Unexpected error: {other_error}"),
         }
@@ -473,7 +478,7 @@ impl AudioController {
         }
     }
 
-    fn apply_settings(&mut self, audio_settings: Settings) {
+    fn apply_settings(&mut self, audio_settings: &Settings) {
         self.client.repeat(audio_settings.repeat).unwrap();
         self.client.random(audio_settings.random).unwrap();
         self.client.single(audio_settings.single).unwrap();

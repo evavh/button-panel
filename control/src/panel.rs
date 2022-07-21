@@ -48,11 +48,11 @@ pub trait Panel {
     async fn recv(&mut self) -> Result<ButtonPress, &'static str>;
 }
 
-pub struct UsartPanel {
+pub struct Usart {
     reader: Framed<SerialStream, LineCodec>,
 }
 
-impl UsartPanel {
+impl Usart {
     pub fn try_connect(tty_path: &str) -> Result<Self> {
         let mut port = tokio_serial::new(tty_path, 9600).open_native_async()?;
 
@@ -67,7 +67,7 @@ impl UsartPanel {
 }
 
 #[async_trait]
-impl Panel for UsartPanel {
+impl Panel for Usart {
     async fn recv(&mut self) -> Result<ButtonPress, &'static str> {
         let line = self
             .reader
@@ -80,11 +80,11 @@ impl Panel for UsartPanel {
     }
 }
 
-pub struct MockPanel {
+pub struct Mock {
     actions: Vec<ButtonPress>,
 }
 
-impl MockPanel {
+impl Mock {
     pub fn try_connect() -> Result<Self> {
         let mut actions = vec![
             ButtonPress::Short(Button::TopMiddle), //play (Music)
@@ -94,12 +94,12 @@ impl MockPanel {
             ButtonPress::Long(Button::TopLeft),    //prev playlist (Music)
         ];
         actions.reverse();
-        Ok(MockPanel { actions })
+        Ok(Mock { actions })
     }
 }
 
 #[async_trait]
-impl Panel for MockPanel {
+impl Panel for Mock {
     async fn recv(&mut self) -> Result<ButtonPress, &'static str> {
         thread::sleep(time::Duration::from_secs(2));
         self.actions.pop().ok_or("No more actions in MockPanel")
