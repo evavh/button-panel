@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use clap::Parser;
 use color_eyre::Result;
 use tracing::warn;
@@ -29,7 +31,9 @@ pub async fn run(mut panel: impl Panel, args: Args) -> Result<()> {
         use protocol::{Button::*, ButtonPress::*};
         match (&audio.mode, button_press) {
             (Music | Meditation, Short(TopLeft)) => audio.previous(),
-            (Book | Podcast, Short(TopLeft)) => audio.rewind_by(15),
+            (Book | Podcast, Short(TopLeft)) => {
+                audio.rewind_by(Duration::from_secs(15))
+            }
 
             (Music | Meditation, Short(TopRight)) => audio.next(),
             (Book | Podcast, Short(TopRight)) => audio.skip(),

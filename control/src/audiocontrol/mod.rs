@@ -1,4 +1,5 @@
 use std::fmt;
+use std::time::Duration;
 
 use mpdrs::error::Error;
 use mpdrs::status::State::Play;
@@ -119,7 +120,7 @@ impl AudioController {
     }
 
     #[instrument(ret)]
-    fn rewind_time(last_played: u64) -> u32 {
+    fn rewind_time(last_played: u64) -> Duration {
         const MIN_REWIND: u32 = 2;
 
         let since_last_played = Db::now_timestamp() - last_played;
@@ -129,9 +130,9 @@ impl AudioController {
             .clamp(0.0, 30.0) as u32;
 
         if rewind_time < MIN_REWIND {
-            0
+            Duration::from_secs(0)
         } else {
-            rewind_time
+            Duration::from_secs(rewind_time.into())
         }
     }
 
@@ -145,8 +146,8 @@ impl AudioController {
 
     fn rewind_after_pause(&mut self) {
         use AudioMode::*;
-        const SONG_RESTART_THRESHOLD: u64 = 1;
-        const ALMOST_OVER: u32 = 10;
+        const SONG_RESTART_THRESHOLD: Duration = Duration::from_secs(60);
+        const ALMOST_OVER: Duration = Duration::from_secs(10);
 
         let current_playlist = match self.db.fetch_playlist_name(&self.mode) {
             Some(current_playlist) => current_playlist,
@@ -160,12 +161,16 @@ impl AudioController {
                 self.rewind_by(Self::rewind_time(last_played));
             }
             (Music | Meditation, Some(last_played)) => {
-                let time_left = self.get_song_length() - self.get_position();
-                if Db::now_timestamp() - last_played
-                    > SONG_RESTART_THRESHOLD * 60
-                    && time_left > ALMOST_OVER
+                if let (Some(length), Some(position)) =
+                    (self.get_song_length(), self.get_elapsed())
                 {
-                    self.seek_in_cur(0)
+                    let time_left = length - position;
+                    if Duration::from_secs(Db::now_timestamp() - last_played)
+                        > SONG_RESTART_THRESHOLD
+                        && time_left > ALMOST_OVER
+                    {
+                        self.seek_in_cur(0)
+                    }
                 }
             }
             (_, None) => (),
@@ -193,56 +198,56 @@ impl AudioController {
         }
     }
 
-    fn get_song_length(&mut self) -> u32 {
-        self.client
-            .status()
-            .unwrap()
-            .duration
-            .unwrap()
-            .as_secs()
-            .try_into()
-            .unwrap()
+    fn get_song_length(&mut self) -> Option<Duration> {
+        self.client.status().unwrap().duration
     }
 
-    fn get_position(&mut self) -> u32 {
-        self.client
-            .status()
-            .unwrap()
-            .elapsed
-            .unwrap()
-            .as_secs()
-            .try_into()
-            .unwrap()
+    fn get_elapsed(&mut self) -> Option<Duration> {
+        self.client.status().unwrap().elapsed
     }
 
-    pub(crate) fn rewind_by(&mut self, seconds: u32) {
+    /// # Panics
+    ///
+    /// Panics if new position is over 4,294,967,295 seconds into the song,
+    /// which is 136 years. I assume this will never happen.
+    ///
+    /// Panics if client.rewind() returns an error. This may very well happen.
+    pub(crate) fn rewind_by(&mut self, duration: Duration) {
         self.play();
-        if seconds == 0 {
+        if duration == Duration::from_secs(0) {
             debug!("0 seconds, not rewinding");
             return;
         }
-        info!("Rewinding by {} seconds", seconds);
+        info!("Rewinding by {:?}", duration);
 
-        let position = self.get_position();
-        self.client
-            .rewind(position.saturating_sub(seconds))
-            .unwrap();
+        if let Some(position) = self.get_elapsed() {
+            self.client
+                .rewind(
+                    position
+                        .saturating_sub(duration)
+                        .as_secs()
+                        .try_into()
+                        .unwrap(),
+                )
+                .unwrap();
+        }
     }
 
+    /// # Panics
+    ///
+    /// Panics if new position is over 4,294,967,295 seconds into the song,
+    /// which is 136 years. I assume this will never happen.
+    ///
+    /// Panics if client.rewind() returns an error. This may very well happen.
     pub(crate) fn skip(&mut self) {
         info!("Skipping by 15 seconds");
 
         self.play();
-        let position: u32 = self
-            .client
-            .status()
-            .unwrap()
-            .elapsed
-            .unwrap()
-            .as_secs()
-            .try_into()
-            .unwrap();
-        self.client.rewind(position + 15).unwrap();
+        if let Some(position) = self.get_elapsed() {
+            self.client
+                .rewind((position.as_secs() + 15).try_into().unwrap())
+                .unwrap();
+        }
     }
 
     pub(crate) fn previous(&mut self) {
@@ -424,12 +429,11 @@ impl AudioController {
             0
         };
 
-        let elapsed =
-            if let Some(elapsed) = self.client.status().unwrap().elapsed {
-                elapsed.as_secs().try_into().unwrap()
-            } else {
-                0
-            };
+        let elapsed = if let Some(elapsed) = self.get_elapsed() {
+            elapsed.as_secs().try_into().unwrap()
+        } else {
+            0
+        };
 
         let position = db::Position { pos_in_pl, elapsed };
         self.db.store_position(playlist_name, position);
