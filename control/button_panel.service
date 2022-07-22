@@ -12,6 +12,8 @@ ExecStart=<DIR>/button_panel /dev/ttyUSB1 127.0.0.1:6600
 ExecStop=/bin/kill -s SIGKILL $MAINPID
 User=<USER>
 Group=<USER>
+Restart=on-failure
+RestartSec=5s
 
 [Install]
 WantedBy=multi-user.target

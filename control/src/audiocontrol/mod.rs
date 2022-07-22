@@ -167,6 +167,9 @@ impl AudioController {
                 if let (Some(length), Some(position)) =
                     (self.get_song_length(), self.get_elapsed())
                 {
+                    debug!(
+                        "Song length: {length:?}, song position: {position:?}"
+                    );
                     let time_left = length - position;
                     if Duration::from_secs(Db::now_timestamp() - last_played)
                         > SONG_RESTART_THRESHOLD
