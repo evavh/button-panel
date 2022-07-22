@@ -4,7 +4,7 @@ use std::fmt;
 use std::time::Duration;
 
 use mpdrs::error::Error;
-use mpdrs::status::State::Play;
+use mpdrs::status::State;
 use mpdrs::Playlist;
 
 mod db;
@@ -110,7 +110,12 @@ impl AudioController {
 
     fn playing(&mut self) -> bool {
         let playback_state = self.client.status().unwrap().state;
-        playback_state == Play
+        playback_state == State::Play
+    }
+
+    fn stopped(&mut self) -> bool {
+        let playback_state = self.client.status().unwrap().state;
+        playback_state == State::Stop
     }
 
     fn get_playlists(&mut self) -> Vec<Playlist> {
@@ -188,9 +193,11 @@ impl AudioController {
         info!("Toggle playback");
         let was_playing = self.playing();
 
-        self.client
-            .toggle_pause()
-            .expect("Something went wrong toggling playback");
+        if self.stopped() {
+            self.play();
+        } else {
+            self.client.toggle_pause().unwrap();
+        }
 
         if was_playing {
             self.store_current_pausing();
