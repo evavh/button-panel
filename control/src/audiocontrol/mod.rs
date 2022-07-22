@@ -229,7 +229,6 @@ impl AudioController {
     ///
     /// Panics if client.rewind() returns an error. This may very well happen.
     pub(crate) fn rewind_by(&mut self, duration: Duration) {
-        self.play();
         if duration == Duration::from_secs(0) {
             debug!("0 seconds, not rewinding");
             return;
