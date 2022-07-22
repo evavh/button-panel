@@ -195,7 +195,7 @@ impl AudioController {
         let was_playing = self.playing();
 
         if self.stopped() {
-            self.play();
+            self.client.play().unwrap();
         } else {
             self.client.toggle_pause().unwrap();
         }
