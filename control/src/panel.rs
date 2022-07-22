@@ -1,3 +1,5 @@
+#![allow(clippy::missing_panics_doc)]
+
 use core::time;
 use std::io;
 use std::path::Path;

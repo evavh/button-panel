@@ -1,4 +1,5 @@
 #![allow(clippy::enum_glob_use)]
+
 use std::fmt;
 use std::time::Duration;
 
