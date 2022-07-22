@@ -6,13 +6,14 @@ use std::time::Duration;
 
 use clap::Parser;
 use color_eyre::Result;
-use tracing::warn;
+use tracing::{instrument, warn};
 
 mod audiocontrol;
 pub mod panel;
 
 use self::panel::Panel;
 use audiocontrol::AudioController;
+use protocol::ButtonPress;
 
 #[derive(Parser, Debug, Default)]
 #[clap(author, version, about, long_about = None)]
@@ -25,32 +26,36 @@ pub struct Args {
     pub ip: String,
 }
 
+#[instrument]
+fn handle_buttonpress(audio: &mut AudioController, button_press: ButtonPress) {
+    use audiocontrol::AudioMode::*;
+    use protocol::{Button::*, ButtonPress::*};
+
+    match (&audio.mode, button_press) {
+        (Music | Meditation, Short(TopLeft)) => audio.previous(),
+        (Book | Podcast, Short(TopLeft)) => {
+            audio.rewind_by(Duration::from_secs(15));
+        }
+
+        (Music | Meditation, Short(TopRight)) => audio.next(),
+        (Book | Podcast, Short(TopRight)) => audio.skip(),
+
+        (_, Short(TopMiddle)) => audio.toggle_playback(),
+
+        (_, Long(TopLeft)) => audio.prev_playlist(),
+        (_, Long(TopRight)) => audio.next_playlist(),
+        (_, Long(TopMiddle)) => audio.next_mode(),
+        _ => warn!("Unimplemented buttonpress: {:?}", button_press),
+    }
+}
+
 pub async fn run(mut panel: impl Panel, args: Args) -> Result<()> {
     let mut audio = AudioController::new(&args.ip);
     audio.rescan();
 
     loop {
-        use audiocontrol::AudioMode::*;
-        use protocol::{Button::*, ButtonPress::*};
-
         let button_press = panel.recv().await.unwrap();
-
-        match (&audio.mode, button_press) {
-            (Music | Meditation, Short(TopLeft)) => audio.previous(),
-            (Book | Podcast, Short(TopLeft)) => {
-                audio.rewind_by(Duration::from_secs(15));
-            }
-
-            (Music | Meditation, Short(TopRight)) => audio.next(),
-            (Book | Podcast, Short(TopRight)) => audio.skip(),
-
-            (_, Short(TopMiddle)) => audio.toggle_playback(),
-
-            (_, Long(TopLeft)) => audio.prev_playlist(),
-            (_, Long(TopRight)) => audio.next_playlist(),
-            (_, Long(TopMiddle)) => audio.next_mode(),
-            _ => warn!("Unimplemented buttonpress: {:?}", button_press),
-        }
+        handle_buttonpress(&mut audio, button_press);
     }
 }
 

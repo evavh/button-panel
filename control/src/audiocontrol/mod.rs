@@ -189,6 +189,7 @@ impl AudioController {
         }
     }
 
+    #[instrument]
     pub(crate) fn toggle_playback(&mut self) {
         info!("Toggle playback");
         let was_playing = self.playing();
@@ -206,6 +207,7 @@ impl AudioController {
         }
     }
 
+    #[instrument]
     fn play(&mut self) {
         if !self.playing() {
             self.toggle_playback();
