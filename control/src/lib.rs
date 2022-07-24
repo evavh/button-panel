@@ -8,7 +8,7 @@ use clap::Parser;
 use color_eyre::Result;
 use tracing::{instrument, warn};
 
-mod audiocontrol;
+pub mod audiocontrol;
 pub mod panel;
 
 use self::panel::Panel;

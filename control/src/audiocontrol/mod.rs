@@ -77,7 +77,7 @@ impl AudioMode {
     }
 }
 
-pub(crate) struct AudioController {
+pub struct AudioController {
     client: MpdInterface,
     db: Db,
     pub(crate) mode: AudioMode,
@@ -92,7 +92,7 @@ impl fmt::Debug for AudioController {
 }
 
 impl AudioController {
-    pub(crate) fn new(ip: &str) -> Self {
+    pub fn new(ip: &str) -> Self {
         let client = MpdInterface::connect(ip).unwrap();
         let mut controller = AudioController {
             client,
@@ -103,7 +103,7 @@ impl AudioController {
         controller
     }
 
-    pub(crate) fn rescan(&mut self) {
+    pub fn rescan(&mut self) {
         info!("Rescanning mpd library");
         self.client.rescan().unwrap();
     }
@@ -165,7 +165,7 @@ impl AudioController {
 
         let last_played = self.db.fetch_last_played(&current_playlist);
 
-        match dbg!((&self.mode, last_played)) {
+        match (&self.mode, last_played) {
             (Book | Podcast, Some(last_played)) => {
                 self.rewind_by(Self::rewind_time(last_played));
             }
@@ -190,7 +190,7 @@ impl AudioController {
     }
 
     #[instrument]
-    pub(crate) fn toggle_playback(&mut self) {
+    pub fn toggle_playback(&mut self) {
         info!("Toggle playback");
         let was_playing = self.playing();
 
@@ -228,7 +228,7 @@ impl AudioController {
     /// which is 136 years. I assume this will never happen.
     ///
     /// Panics if client.rewind() returns an error. This may very well happen.
-    pub(crate) fn rewind_by(&mut self, duration: Duration) {
+    pub fn rewind_by(&mut self, duration: Duration) {
         if duration == Duration::from_secs(0) {
             debug!("0 seconds, not rewinding");
             return;
@@ -254,7 +254,7 @@ impl AudioController {
     /// which is 136 years. I assume this will never happen.
     ///
     /// Panics if client.rewind() returns an error. This may very well happen.
-    pub(crate) fn skip(&mut self) {
+    pub fn skip(&mut self) {
         info!("Skipping by 15 seconds");
 
         self.play();
@@ -265,7 +265,7 @@ impl AudioController {
         }
     }
 
-    pub(crate) fn previous(&mut self) {
+    pub fn previous(&mut self) {
         info!("Going to previous track");
 
         self.play();
@@ -273,7 +273,7 @@ impl AudioController {
     }
 
     #[instrument]
-    pub(crate) fn next(&mut self) {
+    pub fn next(&mut self) {
         info!("Next");
 
         self.play();
@@ -330,12 +330,12 @@ impl AudioController {
         self.rewind_after_pause();
     }
 
-    pub(crate) fn prev_playlist(&mut self) {
+    pub fn prev_playlist(&mut self) {
         self.play();
         self.switch_playlist(Direction::Previous);
     }
 
-    pub(crate) fn next_playlist(&mut self) {
+    pub fn next_playlist(&mut self) {
         self.play();
         self.switch_playlist(Direction::Next);
     }
@@ -357,7 +357,7 @@ impl AudioController {
         start < now && now < end
     }
 
-    pub(crate) fn next_mode(&mut self) {
+    pub fn next_mode(&mut self) {
         self.play();
 
         let current_playlist_name =
