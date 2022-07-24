@@ -249,8 +249,8 @@ impl AudioController {
     }
 
     pub fn rewind(&mut self) {
-        self.play();
         self.rewind_by(Duration::from_secs(15));
+        self.play();
     }
 
     /// # Panics
@@ -262,26 +262,25 @@ impl AudioController {
     pub fn skip(&mut self) {
         info!("Skipping by 15 seconds");
 
-        self.play();
         if let Some(position) = self.get_elapsed() {
             self.client
                 .rewind((position.as_secs() + 15).try_into().unwrap())
                 .unwrap();
         }
+
+        self.play();
     }
 
     pub fn previous(&mut self) {
         info!("Going to previous track");
 
-        self.play();
         self.client.prev().unwrap();
+        self.play();
     }
 
     #[instrument]
     pub fn next(&mut self) {
         info!("Next");
-
-        self.play();
 
         match self.client.next() {
             Ok(_) => (),
@@ -293,6 +292,8 @@ impl AudioController {
             }
             Err(other_error) => panic!("Unexpected error: {other_error}"),
         };
+
+        self.play();
     }
 
     fn apply_shuffle(&mut self, playlist_name: &str) {
@@ -336,13 +337,13 @@ impl AudioController {
     }
 
     pub fn prev_playlist(&mut self) {
-        self.play();
         self.switch_playlist(Direction::Previous);
+        self.play();
     }
 
     pub fn next_playlist(&mut self) {
-        self.play();
         self.switch_playlist(Direction::Next);
+        self.play();
     }
 
     /// Meditation mode is only enabled at night
@@ -363,8 +364,6 @@ impl AudioController {
     }
 
     pub fn next_mode(&mut self) {
-        self.play();
-
         let current_playlist_name =
             match self.db.fetch_playlist_name(&self.mode) {
                 Some(playlist_name) => playlist_name,
@@ -399,6 +398,8 @@ impl AudioController {
 
         self.apply_settings(&self.mode.settings());
         self.apply_shuffle(&new_playlist_name);
+
+        self.play();
     }
 
     fn save_playlist_if_necessary(&mut self, playlist_name: &str) {
