@@ -123,7 +123,7 @@ impl AudioController {
     }
 
     #[instrument(ret)]
-    fn rewind_time(last_played: u64) -> Duration {
+    fn auto_rewind_time(last_played: u64) -> Duration {
         const MIN_REWIND: u32 = 2;
 
         let since_last_played = Db::now_timestamp() - last_played;
@@ -167,7 +167,7 @@ impl AudioController {
 
         match (&self.mode, last_played) {
             (Book | Podcast, Some(last_played)) => {
-                self.rewind_by(Self::rewind_time(last_played));
+                self.rewind_by(Self::auto_rewind_time(last_played));
             }
             (Music | Meditation, Some(last_played)) => {
                 if let (Some(length), Some(position)) =
@@ -228,7 +228,7 @@ impl AudioController {
     /// which is 136 years. I assume this will never happen.
     ///
     /// Panics if client.rewind() returns an error. This may very well happen.
-    pub fn rewind_by(&mut self, duration: Duration) {
+    fn rewind_by(&mut self, duration: Duration) {
         if duration == Duration::from_secs(0) {
             debug!("0 seconds, not rewinding");
             return;
@@ -246,6 +246,11 @@ impl AudioController {
                 )
                 .unwrap();
         }
+    }
+
+    pub fn rewind(&mut self) {
+        self.play();
+        self.rewind_by(Duration::from_secs(15));
     }
 
     /// # Panics

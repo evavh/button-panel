@@ -2,8 +2,6 @@
 #![allow(clippy::missing_panics_doc)]
 #![allow(clippy::missing_errors_doc)]
 
-use std::time::Duration;
-
 use clap::Parser;
 use color_eyre::Result;
 use tracing::{instrument, warn};
@@ -33,9 +31,7 @@ fn handle_buttonpress(audio: &mut AudioController, button_press: ButtonPress) {
 
     match (&audio.mode, button_press) {
         (Music | Meditation, Short(TopLeft)) => audio.previous(),
-        (Book | Podcast, Short(TopLeft)) => {
-            audio.rewind_by(Duration::from_secs(15));
-        }
+        (Book | Podcast, Short(TopLeft)) => audio.rewind(),
 
         (Music | Meditation, Short(TopRight)) => audio.next(),
         (Book | Podcast, Short(TopRight)) => audio.skip(),
