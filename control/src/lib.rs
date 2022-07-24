@@ -7,10 +7,12 @@ use color_eyre::Result;
 use tracing::{instrument, warn};
 
 pub mod audiocontrol;
+pub mod lightcontrol;
 pub mod panel;
 
 use self::panel::Panel;
 use audiocontrol::AudioController;
+use lightcontrol::LightController;
 use protocol::ButtonPress;
 
 #[derive(Parser, Debug, Default)]
@@ -25,7 +27,11 @@ pub struct Args {
 }
 
 #[instrument]
-fn handle_buttonpress(audio: &mut AudioController, button_press: ButtonPress) {
+fn handle_buttonpress(
+    audio: &mut AudioController,
+    light: &LightController,
+    button_press: ButtonPress,
+) {
     use audiocontrol::AudioMode::*;
     use protocol::{Button::*, ButtonPress::*};
 
@@ -41,17 +47,24 @@ fn handle_buttonpress(audio: &mut AudioController, button_press: ButtonPress) {
         (_, Long(TopLeft)) => audio.prev_playlist(),
         (_, Long(TopRight)) => audio.next_playlist(),
         (_, Long(TopMiddle)) => audio.next_mode(),
+
+        (_, Short(BottomLeft)) => light.off(),
+        (_, Long(BottomLeft)) => light.night_on(),
+        (_, Short(BottomMiddle)) => light.evening_on(),
+        (_, Long(BottomMiddle)) => light.early_evening_on(),
+        (_, Short(BottomRight)) => light.day_on(),
         _ => warn!("Unimplemented buttonpress: {:?}", button_press),
     }
 }
 
 pub async fn run(mut panel: impl Panel, args: Args) -> Result<()> {
     let mut audio = AudioController::new(&args.ip);
+    let light = LightController::new(&args.ip, "8081");
     audio.rescan();
 
     loop {
         let button_press = panel.recv().await.unwrap();
-        handle_buttonpress(&mut audio, button_press);
+        handle_buttonpress(&mut audio, &light, button_press);
     }
 }
 
