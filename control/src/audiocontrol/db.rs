@@ -112,11 +112,11 @@ mod tests {
     fn fetch_and_store_last_played() {
         let db = Db::open("test_db");
 
-        let mode = AudioMode::Music;
+        let playlist = "test_playlist_name";
         let last_played = Db::now_timestamp();
 
-        db.store_last_played(&mode, last_played);
-        let fetched = db.fetch_last_played(&mode).unwrap();
+        db.store_last_played(&playlist, last_played);
+        let fetched = db.fetch_last_played(&playlist).unwrap();
         assert_eq!(fetched, last_played);
     }
 }

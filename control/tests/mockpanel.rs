@@ -1,7 +1,7 @@
 use color_eyre::eyre::Context;
 use color_eyre::Result;
 
-use control::panel::MockPanel;
+use control::panel;
 
 #[tokio::test]
 async fn main() -> Result<()> {
@@ -14,7 +14,7 @@ async fn main() -> Result<()> {
     };
 
     let panel =
-        MockPanel::try_connect().wrap_err("Could not connect to Panel")?;
+        panel::Mock::try_connect().wrap_err("Could not connect to Panel")?;
 
     control::run(panel, args).await
 }
