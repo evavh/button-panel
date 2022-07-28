@@ -58,7 +58,7 @@ fn handle_buttonpress(
 }
 
 pub async fn run(mut panel: impl Panel, args: Args) -> Result<()> {
-    let mut audio = AudioController::new(&args.ip);
+    let mut audio = AudioController::new(&args.ip, "6600");
     let light = LightController::new(&args.ip, "8081");
     audio.rescan();
 

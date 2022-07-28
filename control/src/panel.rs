@@ -5,12 +5,12 @@ use std::io;
 use std::path::Path;
 use std::thread;
 
+use async_trait::async_trait;
 use bytes::BytesMut;
 use color_eyre::{eyre::eyre, Help, Result};
 use futures::stream::StreamExt;
 use tokio_serial::{SerialPortBuilderExt, SerialStream};
 use tokio_util::codec::{Decoder, Encoder, Framed};
-use async_trait::async_trait;
 
 use protocol::{Button, ButtonPress};
 
@@ -89,11 +89,12 @@ pub struct Mock {
 impl Mock {
     pub fn try_connect() -> Result<Self> {
         let mut actions = vec![
-            ButtonPress::Short(Button::TopMiddle), //play (Music)
-            ButtonPress::Long(Button::TopRight),   //next playlist (Music)
-            ButtonPress::Long(Button::TopRight),   //next playlist (Music)
-            ButtonPress::Long(Button::TopLeft),    //prev playlist (Music)
-            ButtonPress::Long(Button::TopLeft),    //prev playlist (Music)
+            ButtonPress::Short(Button::BottomMiddle), //evening light
+            ButtonPress::Short(Button::TopMiddle),    //play (Music)
+            ButtonPress::Long(Button::TopRight),      //next playlist (Music)
+            ButtonPress::Long(Button::TopRight),      //next playlist (Music)
+            ButtonPress::Long(Button::TopLeft),       //prev playlist (Music)
+            ButtonPress::Long(Button::TopLeft),       //prev playlist (Music)
         ];
         actions.reverse();
         Ok(Mock { actions })

@@ -92,8 +92,9 @@ impl fmt::Debug for AudioController {
 }
 
 impl AudioController {
-    pub fn new(ip: &str) -> Self {
-        let client = MpdInterface::connect(ip).unwrap();
+    pub fn new(ip: &str, port: &str) -> Self {
+        let address = format!("{}:{}", ip, port);
+        let client = MpdInterface::connect(&address).unwrap();
         let mut controller = AudioController {
             client,
             db: Db::open("database"),

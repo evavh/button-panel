@@ -20,13 +20,20 @@ impl fmt::Debug for LightController {
 impl LightController {
     pub fn new(ip: &str, port: &str) -> Self {
         let client = Client::new();
-        Self { ip: ip.to_owned(), port: port.to_owned(), client }
+        Self {
+            ip: ip.to_owned(),
+            port: port.to_owned(),
+            client,
+        }
     }
 
-    fn send_command(&self, _command: String) -> Result<Response, Error> {
+    fn send_command(&self, command: String) -> Result<Response, Error> {
         let res = self
             .client
-            .post("{self.ip}:{self.port}/command/{_command}")
+            .post(format!(
+                "http://{}:{}/command/{}",
+                self.ip, self.port, command
+            ))
             .body("")
             .send();
         futures::executor::block_on(res)
@@ -45,7 +52,8 @@ impl LightController {
     }
 
     pub fn early_evening_on(&self) {
-        self.send_command("early_evening_light_on".to_string()).unwrap();
+        self.send_command("early_evening_light_on".to_string())
+            .unwrap();
     }
 
     pub fn day_on(&self) {

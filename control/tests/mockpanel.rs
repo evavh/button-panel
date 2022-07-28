@@ -9,7 +9,7 @@ async fn main() -> Result<()> {
     control::setup_tracing();
 
     let args = control::Args {
-        ip: "192.168.1.101:6600".to_owned(),
+        ip: "192.168.1.101".to_owned(),
         ..control::Args::default()
     };
 
