@@ -1,21 +1,19 @@
 # TODO after install, replace <USER>, <DIR> and <WDIR> with actual values
 
 [Unit]
-Description=Button panel for controlling audio and light
+Description=(DEV) Button panel for controlling audio and light
 After=network-online.target
 Wants=network-online.target
-StartLimitBurst=3
-StartLimitIntervalSec=30
+OnFailure=button_panel.service
 
 [Service]
 Environment="RUST_BACKTRACE=1"
 WorkingDirectory=<DIR>
-ExecStart=<DIR>/button_panel /dev/ttyUSB1 127.0.0.1
+ExecStart=<DIR>/button_panel_dev /dev/ttyUSB1 127.0.0.1
 ExecStop=/bin/kill -s SIGKILL $MAINPID
+SuccessExitStatus=SIGKILL
 User=<USER>
 Group=<USER>
-Restart=on-failure
-RestartSec=5
 
 [Install]
 WantedBy=multi-user.target
