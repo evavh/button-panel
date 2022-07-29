@@ -1,4 +1,4 @@
-use std::fmt;
+use std::{fmt, thread::sleep, time::Duration};
 
 use reqwest::{Client, Error, Response};
 
@@ -27,7 +27,7 @@ impl LightController {
         }
     }
 
-    fn send_command(&self, command: String) -> Result<Response, Error> {
+    fn send_command(&self, command: &str) -> Result<Response, Error> {
         let res = self
             .client
             .post(format!(
@@ -39,24 +39,31 @@ impl LightController {
         futures::executor::block_on(res)
     }
 
+    fn send_command_triplex(&self, command: &str) -> Result<Response, Error> {
+        self.send_command(command)?;
+        sleep(Duration::from_millis(100));
+        self.send_command(command)?;
+        sleep(Duration::from_millis(100));
+        self.send_command(command)
+    }
+
     pub fn off(&self) {
-        self.send_command("lights_off".to_string()).unwrap();
+        self.send_command_triplex("lights_off").unwrap();
     }
 
     pub fn night_on(&self) {
-        self.send_command("night_light_on".to_string()).unwrap();
+        self.send_command_triplex("night_light_on").unwrap();
     }
 
     pub fn evening_on(&self) {
-        self.send_command("evening_light_on".to_string()).unwrap();
+        self.send_command_triplex("evening_light_on").unwrap();
     }
 
     pub fn early_evening_on(&self) {
-        self.send_command("early_evening_light_on".to_string())
-            .unwrap();
+        self.send_command_triplex("early_evening_light_on").unwrap();
     }
 
     pub fn day_on(&self) {
-        self.send_command("soft_light_on".to_string()).unwrap();
+        self.send_command_triplex("soft_light_on").unwrap();
     }
 }
