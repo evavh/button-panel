@@ -37,6 +37,7 @@ rsync -vh --progress \
 
 # sets up/updates the systemd service and places the binary
 cmds="
+echo 'ssh connection established'
 sed -i \"s/<USER>/$SERVER_USER/g\" /tmp/button_panel$SUFFIX.service
 sed -i \"s+<DIR>+$SERVER_DIR+g\" /tmp/button_panel$SUFFIX.service
 sudo mv /tmp/button_panel$SUFFIX.service /etc/systemd/system/

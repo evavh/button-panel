@@ -9,8 +9,9 @@ StartLimitIntervalSec=30
 
 [Service]
 Environment="RUST_BACKTRACE=1"
+Environment="RUST_LOG=warn,control=debug"
 WorkingDirectory=<DIR>
-ExecStart=RUST_LOG=warn,control=debug <DIR>/button_panel /dev/ttyUSB1 127.0.0.1
+ExecStart=<DIR>/button_panel /dev/ttyUSB1 127.0.0.1
 ExecStop=/bin/kill -s SIGKILL $MAINPID
 User=<USER>
 Group=<USER>
