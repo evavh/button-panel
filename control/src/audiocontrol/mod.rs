@@ -77,6 +77,12 @@ impl AudioMode {
     }
 }
 
+#[derive(Debug, PartialEq, Eq)]
+pub enum ForceRewind {
+    Yes,
+    No,
+}
+
 pub struct AudioController {
     client: MpdInterface,
     db: Db,
@@ -209,9 +215,11 @@ impl AudioController {
     }
 
     #[instrument]
-    fn play(&mut self) {
+    fn play(&mut self, force_rewind: ForceRewind) {
         if !self.playing() {
             self.toggle_playback();
+        } else if force_rewind == ForceRewind::Yes {
+            self.rewind_after_pause()
         }
     }
 
@@ -251,7 +259,7 @@ impl AudioController {
 
     pub fn rewind(&mut self) {
         self.rewind_by(Duration::from_secs(15));
-        self.play();
+        self.play(ForceRewind::No);
     }
 
     /// # Panics
@@ -269,14 +277,14 @@ impl AudioController {
                 .unwrap();
         }
 
-        self.play();
+        self.play(ForceRewind::No);
     }
 
     pub fn previous(&mut self) {
         info!("Going to previous track");
 
         self.client.prev().unwrap();
-        self.play();
+        self.play(ForceRewind::No);
     }
 
     #[instrument]
@@ -294,7 +302,7 @@ impl AudioController {
             Err(other_error) => panic!("Unexpected error: {other_error}"),
         };
 
-        self.play();
+        self.play(ForceRewind::No);
     }
 
     fn apply_shuffle(&mut self, playlist_name: &str) {
@@ -334,17 +342,15 @@ impl AudioController {
         let new_position = self.db.fetch_position(&new_playlist_name);
         self.load_position(new_position);
 
-        self.rewind_after_pause();
+        self.play(ForceRewind::Yes);
     }
 
     pub fn prev_playlist(&mut self) {
         self.switch_playlist(Direction::Previous);
-        self.play();
     }
 
     pub fn next_playlist(&mut self) {
         self.switch_playlist(Direction::Next);
-        self.play();
     }
 
     /// Meditation mode is only enabled at night
@@ -395,12 +401,11 @@ impl AudioController {
 
         let new_position = self.db.fetch_position(&new_playlist_name);
         self.load_position(new_position);
-        self.rewind_after_pause();
 
         self.apply_settings(&self.mode.settings());
         self.apply_shuffle(&new_playlist_name);
 
-        self.play();
+        self.play(ForceRewind::Yes);
     }
 
     fn save_playlist_if_necessary(&mut self, playlist_name: &str) {
