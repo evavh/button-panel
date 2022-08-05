@@ -75,6 +75,27 @@ impl AudioMode {
             },
         }
     }
+
+    fn to_bytes(&self) -> [u8; 1] {
+        use AudioMode::*;
+        match self {
+            Music => [1],
+            Book => [2],
+            Podcast => [3],
+            Meditation => [4],
+        }
+    }
+
+    fn from_bytes(bytes: &[u8]) -> Self {
+        use AudioMode::*;
+        match bytes {
+            &[1] => Music,
+            &[2] => Book,
+            &[3] => Podcast,
+            &[4] => Meditation,
+            other => panic!("Unexpected serialized mode: {:?}", other),
+        }
+    }
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -106,6 +127,14 @@ impl AudioController {
             db: Db::open("database"),
             mode: AudioMode::Music,
         };
+
+        if let Some(mode) = controller.fetch_current_mode() {
+            info!("Initializing with stored mode {:?}", mode);
+            controller.mode = mode;
+        } else {
+            info!("No current mode stored, defaulting to music");
+        }
+
         controller.playing();
         controller
     }
@@ -370,6 +399,14 @@ impl AudioController {
         start < now && now < end
     }
 
+    fn fetch_current_mode(&self) -> Option<AudioMode> {
+        self.db.fetch_mode()
+    }
+
+    fn store_current_mode(&self) {
+        self.db.store_mode(&self.mode);
+    }
+
     pub fn next_mode(&mut self) {
         let current_playlist_name =
             match self.db.fetch_playlist_name(&self.mode) {
@@ -398,6 +435,7 @@ impl AudioController {
             playlist_name
         };
         self.load_playlist(&new_playlist_name);
+        self.store_current_mode();
 
         let new_position = self.db.fetch_position(&new_playlist_name);
         self.load_position(new_position);
