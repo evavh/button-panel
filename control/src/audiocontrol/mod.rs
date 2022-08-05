@@ -396,7 +396,12 @@ impl AudioController {
         let start = NaiveTime::from_hms(START_HOUR, START_MIN, 0);
         let end = NaiveTime::from_hms(END_HOUR, END_MIN, 0);
 
-        start < now && now < end
+        debug!("Meditation start time: {}, end time: {}", start, end);
+        let start_sm_now = start < now;
+        let now_sm_end = now < end;
+        debug!("start < now: {}, now < end: {}", start_sm_now, now_sm_end);
+
+        start < now || now < end
     }
 
     fn fetch_current_mode(&self) -> Option<AudioMode> {
