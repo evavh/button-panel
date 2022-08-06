@@ -50,10 +50,10 @@ fn handle_buttonpress(
 
         (_, Short(BottomLeft)) => light.off(),
         (_, Long(BottomLeft)) => light.night_on(),
-        (_, Short(BottomMiddle)) => light.evening_on(),
+        (_, Short(BottomMiddle)) => light.time_based_light(),
         (_, Long(BottomMiddle)) => light.early_evening_on(),
-        (_, Short(BottomRight)) => light.day_on(),
-        (_, Long(BottomRight)) => light.time_based_light(),
+        (_, Short(BottomRight)) => light.override_light(),
+        (_, Long(BottomRight)) => light.day_on(),
     }
 }
 

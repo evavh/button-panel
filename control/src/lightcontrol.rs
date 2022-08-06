@@ -31,16 +31,22 @@ impl TimeFrame {
     }
 }
 
-struct TimeSetting {
+struct Setting {
     time_frame: TimeFrame,
     command: &'static str,
+    override_command: &'static str,
 }
 
-impl TimeSetting {
-    pub(crate) fn new(time_frame: TimeFrame, command: &'static str) -> Self {
+impl Setting {
+    pub(crate) fn new(
+        time_frame: TimeFrame,
+        command: &'static str,
+        override_command: &'static str,
+    ) -> Self {
         Self {
             time_frame,
             command,
+            override_command,
         }
     }
 }
@@ -49,7 +55,7 @@ pub struct LightController {
     ip: String,
     port: String,
     client: reqwest::Client,
-    time_settings: Vec<TimeSetting>,
+    time_settings: Vec<Setting>,
 }
 
 impl fmt::Debug for LightController {
@@ -74,13 +80,26 @@ impl LightController {
         let client = Client::new();
 
         let time_settings = vec![
-            TimeSetting::new(TimeFrame::new(8, 30, 17, 00), command::DAY),
-            TimeSetting::new(
-                TimeFrame::new(17, 0, 21, 30),
+            Setting::new(
+                TimeFrame::new(8, 30, 17, 00),
+                command::DAY,
                 command::EARLY_EVENING,
             ),
-            TimeSetting::new(TimeFrame::new(21, 30, 22, 0), command::EVENING),
-            TimeSetting::new(TimeFrame::new(22, 0, 8, 30), command::NIGHT),
+            Setting::new(
+                TimeFrame::new(17, 0, 21, 30),
+                command::EARLY_EVENING,
+                command::DAY,
+            ),
+            Setting::new(
+                TimeFrame::new(21, 30, 22, 0),
+                command::EVENING,
+                command::EARLY_EVENING,
+            ),
+            Setting::new(
+                TimeFrame::new(22, 0, 8, 30),
+                command::NIGHT,
+                command::EVENING,
+            ),
         ];
 
         Self {
@@ -132,19 +151,34 @@ impl LightController {
         self.send_command_triplex(command::DAY).unwrap();
     }
 
-    #[instrument]
-    pub fn time_based_light(&self) {
+    #[instrument(skip(command_getter))]
+    fn apply_time_setting(
+        &self,
+        command_getter: impl FnOnce(&Setting) -> &'static str,
+        warn_type: &'static str,
+    ) {
         let now = Local::now().time();
 
         if let Some(command) = self
             .time_settings
             .iter()
             .find(|setting| setting.time_frame.contains(now))
-            .map(|setting| &setting.command)
+            .map(command_getter)
         {
             self.send_command_triplex(command).unwrap();
         } else {
-            warn!("Current time {now} not found in time settings for lights");
+            warn!("Current time {now} not found in {warn_type} settings for lights");
         }
+    }
+
+    pub fn time_based_light(&self) {
+        self.apply_time_setting(|setting| &setting.command, "time");
+    }
+
+    pub fn override_light(&self) {
+        self.apply_time_setting(
+            |setting| &setting.override_command,
+            "override",
+        );
     }
 }
