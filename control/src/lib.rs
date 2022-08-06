@@ -53,7 +53,7 @@ fn handle_buttonpress(
         (_, Short(BottomMiddle)) => light.evening_on(),
         (_, Long(BottomMiddle)) => light.early_evening_on(),
         (_, Short(BottomRight)) => light.day_on(),
-        _ => warn!("Unimplemented buttonpress: {:?}", button_press),
+        (_, Long(BottomRight)) => light.time_based_light(),
     }
 }
 
