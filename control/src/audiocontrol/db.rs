@@ -1,7 +1,7 @@
 use super::AudioMode;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-#[derive(Debug)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub(crate) struct Position {
     pub(crate) pos_in_pl: u32,
     pub(crate) elapsed: u32,
@@ -105,13 +105,17 @@ impl Db {
 
     pub(crate) fn fetch_mode(&self) -> Option<AudioMode> {
         let key = "current_mode";
-        self.database.get(key.as_bytes()).unwrap()
+        self.database
+            .get(key.as_bytes())
+            .unwrap()
             .map(|buffer| AudioMode::from_bytes(buffer.as_ref()))
     }
 
     pub(crate) fn store_mode(&self, mode: &AudioMode) {
         let key = "current_mode";
-        self.database.insert(key.as_bytes(), &mode.to_bytes()).unwrap();
+        self.database
+            .insert(key.as_bytes(), &mode.to_bytes())
+            .unwrap();
     }
 }
 

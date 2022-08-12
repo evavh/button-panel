@@ -8,6 +8,7 @@ use mpdrs::status::State;
 use mpdrs::Playlist;
 
 mod db;
+mod db2;
 use db::Db;
 
 mod mpdinterface;
@@ -31,7 +32,7 @@ struct Settings {
     save_playlist: bool,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, serde::Serialize, serde::Deserialize, Clone)]
 pub enum AudioMode {
     Music,
     Book,

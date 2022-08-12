@@ -1,4 +1,4 @@
 **/target/
 **/database/
-**/test_db/
+**/test_db*/
 **/Cargo.lock
