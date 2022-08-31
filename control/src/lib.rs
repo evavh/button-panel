@@ -49,7 +49,7 @@ fn handle_buttonpress(
         (_, Long(TopMiddle)) => audio.next_mode(),
 
         (_, Short(BottomLeft)) => light.off(),
-        (_, Long(BottomLeft)) => light.night_on(),
+        (_, Long(BottomLeft)) => light.evening_on(),
         (_, Short(BottomMiddle)) => light.time_based_light(),
         (_, Long(BottomMiddle)) => light.early_evening_on(),
         (_, Short(BottomRight)) => light.override_light(),
