@@ -1,7 +1,7 @@
 use super::{db::Position, AudioMode};
 use std::time::{SystemTime, UNIX_EPOCH};
 
-#[dbstruct::dbstruct]
+#[dbstruct::dbstruct(db=sled)]
 struct PersistentData {
     mode_cur_playlist: HashMap<AudioMode, String>,
     playlist_positions: HashMap<String, Position>,
@@ -10,17 +10,15 @@ struct PersistentData {
 }
 
 pub(crate) struct Db {
-    database: PersistentData<sled::Tree>,
+    database: PersistentData,
 }
 
 impl Db {
     pub(crate) fn open(path: &str) -> Self {
-        let db = sled::Config::default()
-                .path(path)
-                .cache_capacity(1_000_000)
-                .open()
-                .unwrap().open_tree("boom").unwrap();
-        Db { database: PersistentData::new(db).unwrap() }
+        let path = std::path::Path::new("boom");
+        Db {
+            database: PersistentData::new(path).unwrap(),
+        }
     }
 
     pub(crate) fn fetch_playlist_name(
@@ -35,14 +33,20 @@ impl Db {
         mode: &AudioMode,
         playlist_name: &str,
     ) {
-        self.database.mode_cur_playlist().set(mode, &playlist_name.to_owned()).unwrap();
+        self.database
+            .mode_cur_playlist()
+            .set(mode, &playlist_name.to_owned())
+            .unwrap();
     }
 
     pub(crate) fn fetch_position(
         &self,
         playlist_name: &str,
     ) -> Option<Position> {
-        self.database.playlist_positions().get(&playlist_name.to_owned()).unwrap()
+        self.database
+            .playlist_positions()
+            .get(&playlist_name.to_owned())
+            .unwrap()
     }
 
     pub(crate) fn store_position(
@@ -50,7 +54,10 @@ impl Db {
         playlist_name: &str,
         position: &Position,
     ) {
-        self.database.playlist_positions().set(&playlist_name.to_owned(), position).unwrap();
+        self.database
+            .playlist_positions()
+            .set(&playlist_name.to_owned(), position)
+            .unwrap();
     }
 
     pub(crate) fn now_timestamp() -> u64 {
@@ -61,19 +68,28 @@ impl Db {
     }
 
     pub(crate) fn fetch_last_played(&self, playlist: &str) -> Option<u64> {
-        self.database.playlist_last_played().get(&playlist.to_owned()).unwrap()
+        self.database
+            .playlist_last_played()
+            .get(&playlist.to_owned())
+            .unwrap()
     }
 
     pub(crate) fn store_last_played(&self, playlist: &str, last_played: u64) {
-        self.database.playlist_last_played().set(&playlist.to_owned(), &last_played).unwrap();
+        self.database
+            .playlist_last_played()
+            .set(&playlist.to_owned(), &last_played)
+            .unwrap();
     }
 
     pub(crate) fn fetch_mode(&self) -> Option<AudioMode> {
-        self.database.current_mode().get().unwrap().unwrap()
+        self.database.current_mode().get().unwrap()
     }
 
     pub(crate) fn store_mode(&self, mode: &AudioMode) {
-        self.database.current_mode().set(&Some((*mode).clone())).unwrap();
+        self.database
+            .current_mode()
+            .set(mode)
+            .unwrap();
     }
 }
 
