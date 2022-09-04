@@ -35,7 +35,7 @@ impl Db {
     ) {
         self.database
             .mode_cur_playlist()
-            .set(mode, &playlist_name.to_owned())
+            .insert(mode, &playlist_name.to_owned())
             .unwrap();
     }
 
@@ -56,7 +56,7 @@ impl Db {
     ) {
         self.database
             .playlist_positions()
-            .set(&playlist_name.to_owned(), position)
+            .insert(&playlist_name.to_owned(), position)
             .unwrap();
     }
 
@@ -77,7 +77,7 @@ impl Db {
     pub(crate) fn store_last_played(&self, playlist: &str, last_played: u64) {
         self.database
             .playlist_last_played()
-            .set(&playlist.to_owned(), &last_played)
+            .insert(&playlist.to_owned(), &last_played)
             .unwrap();
     }
 
