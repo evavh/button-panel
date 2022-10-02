@@ -9,7 +9,7 @@ use mpdrs::Playlist;
 
 mod db;
 mod db2;
-use db2::Db;
+use db::Db;
 
 mod mpdinterface;
 use mpdinterface::MpdInterface;
