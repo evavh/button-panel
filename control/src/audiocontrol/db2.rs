@@ -15,9 +15,8 @@ pub(crate) struct Db {
 
 impl Db {
     pub(crate) fn open(path: &str) -> Self {
-        let path = std::path::Path::new("boom");
         Db {
-            database: PersistentData::new(path).unwrap(),
+            database: PersistentData::new(path.to_owned()+"_test").unwrap(),
         }
     }
 
