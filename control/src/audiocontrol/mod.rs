@@ -193,7 +193,7 @@ impl AudioController {
     fn rewind_after_pause(&mut self) {
         use AudioMode::*;
         const SONG_RESTART_THRESHOLD: Duration =
-            Duration::from_secs(4 * 60 * 60);
+            Duration::from_secs(4 * 60 * 60 * 10000);
         const ALMOST_OVER: Duration = Duration::from_secs(30);
 
         let current_playlist = match self.db.fetch_playlist_name(&self.mode) {
