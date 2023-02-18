@@ -314,7 +314,16 @@ impl AudioController {
     pub fn previous(&mut self) {
         info!("Going to previous track");
 
-        self.client.prev().unwrap();
+        match self.client.prev() {
+            Ok(_) => (),
+            Err(Error::Server(server_error)) => {
+                assert!(
+                    server_error.detail == "Not playing",
+                    "Unexpected ServerError: {server_error}"
+                );
+            }
+            Err(other_error) => panic!("Unexpected error: {other_error}"),
+        };
         self.play(ForceRewind::No);
     }
 
