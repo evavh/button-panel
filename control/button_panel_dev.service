@@ -10,7 +10,7 @@ OnFailure=button_panel.service
 Environment="RUST_BACKTRACE=1"
 Environment="RUST_LOG=warn,control=debug"
 WorkingDirectory=<DIR>
-ExecStart=<DIR>/button_panel_dev /dev/ttyUSB1 127.0.0.1
+ExecStart=<DIR>/button_panel_dev /dev/ttyUSB0 127.0.0.1
 ExecStop=/bin/kill -s SIGKILL $MAINPID
 SuccessExitStatus=SIGKILL
 User=<USER>
