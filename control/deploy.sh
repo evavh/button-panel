@@ -24,15 +24,10 @@ SERVER_ADDR="pi"
 SERVER_USER="eva"
 SERVER_DIR="/home/$SERVER_USER/button_panel$SUFFIX"
 
-dir=debug
-if [ "$1" = "--release" ]; then
-	dir=release
-fi
-
-cross build --target=armv7-unknown-linux-gnueabihf $1
+cross build --target=armv7-unknown-linux-gnueabihf --release
 rsync button_panel$SUFFIX.service $SERVER_ADDR:/tmp/
 rsync -vh --progress \
-  target/armv7-unknown-linux-gnueabihf/$dir/control \
+  target/armv7-unknown-linux-gnueabihf/release/control \
   $SERVER_ADDR:/tmp/
 
 # sets up/updates the systemd service and places the binary
