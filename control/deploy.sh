@@ -24,7 +24,9 @@ SERVER_ADDR="pi"
 SERVER_USER="eva"
 SERVER_DIR="/home/$SERVER_USER/button_panel$SUFFIX"
 
+echo "Building..."
 cross build --target=armv7-unknown-linux-gnueabihf --release
+echo "RSyncing..."
 rsync button_panel$SUFFIX.service $SERVER_ADDR:/tmp/
 rsync -vh --progress \
   target/armv7-unknown-linux-gnueabihf/release/control \
@@ -46,4 +48,5 @@ sudo systemctl enable button_panel$SUFFIX.service
 sudo systemctl restart button_panel$SUFFIX.service
 "
 
+echo "Setting up over ssh..."
 ssh -t $SERVER_ADDR "$cmds"
