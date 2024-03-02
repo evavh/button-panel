@@ -246,7 +246,7 @@ impl AudioController {
     }
 
     #[instrument]
-    fn play(&mut self, force_rewind: ForceRewind) {
+    pub fn play(&mut self, force_rewind: ForceRewind) {
         if !self.playing() {
             self.toggle_playback();
         } else if force_rewind == ForceRewind::Yes {
@@ -382,7 +382,7 @@ impl AudioController {
         let new_position = self.db.fetch_position(&new_playlist_name);
         self.load_position(new_position);
 
-        self.play(ForceRewind::Yes);
+        //self.play(ForceRewind::Yes);
     }
 
     pub fn prev_playlist(&mut self) {
@@ -459,7 +459,8 @@ impl AudioController {
         self.apply_settings(&self.mode.settings());
         self.apply_shuffle(&new_playlist_name);
 
-        self.play(ForceRewind::Yes);
+        // TODO: check if okay to not do
+        // self.play(ForceRewind::Yes);
     }
 
     fn save_playlist_if_necessary(&mut self, playlist_name: &str) {
@@ -561,5 +562,45 @@ impl AudioController {
         self.client.random(audio_settings.random).unwrap();
         self.client.single(audio_settings.single).unwrap();
         self.client.consume(audio_settings.consume).unwrap();
+    }
+
+    pub(crate) fn go_to_mode(&mut self, target_mode: &AudioMode) {
+        while self.mode != *target_mode {
+            self.next_mode();
+        }
+    }
+
+    pub(crate) fn go_to_playlist(
+        &mut self,
+        target_playlist: &str,
+    ) -> Result<(), String> {
+        let old_playlist = self.db.fetch_playlist_name(&self.mode).unwrap();
+        while self.db.fetch_playlist_name(&self.mode).unwrap()
+            != *target_playlist
+        {
+            self.switch_playlist(Direction::Next);
+            if self.db.fetch_playlist_name(&self.mode).unwrap() == old_playlist
+            {
+                return Err(format!(
+                    "Could not find target playlist {target_playlist:?} to go to"
+                ));
+            }
+        }
+
+        Ok(())
+    }
+
+    pub(crate) fn play_mode_playlist(
+        &mut self,
+        mode: &AudioMode,
+        playlist: &str,
+    ) {
+        self.go_to_mode(mode);
+        match self.go_to_playlist(playlist) {
+            Ok(()) => (),
+            Err(e) => println!("{e}"),
+        };
+        self.previous();
+        self.play(ForceRewind::No);
     }
 }

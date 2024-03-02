@@ -9,6 +9,9 @@ use tracing::{instrument, warn};
 pub mod audiocontrol;
 pub mod lightcontrol;
 pub mod panel;
+pub mod tcp;
+
+use crate::{audiocontrol::ForceRewind, tcp::TcpRequest};
 
 use self::panel::Panel;
 use audiocontrol::AudioController;
@@ -54,6 +57,17 @@ fn handle_buttonpress(
         (_, Long(BottomMiddle)) => light.early_evening_on(),
         (_, Short(BottomRight)) => light.override_light(),
         (_, Long(BottomRight)) => light.day_on(),
+    }
+}
+
+fn handle_tcp_request(audio: &mut AudioController, request: TcpRequest) {
+    use TcpRequest as R;
+
+    match request {
+        R::GoToMode(mode) => audio.go_to_mode(&mode),
+        R::PlayModePlaylist(mode, playlist) => {
+            audio.play_mode_playlist(&mode, &playlist)
+        }
     }
 }
 
