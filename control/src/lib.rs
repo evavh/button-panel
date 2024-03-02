@@ -4,6 +4,7 @@
 
 use clap::Parser;
 use color_eyre::Result;
+use tokio::net::TcpListener;
 use tracing::{instrument, warn};
 
 pub mod audiocontrol;
@@ -76,9 +77,17 @@ pub async fn run(mut panel: impl Panel, args: Args) -> Result<()> {
     let light = LightController::new(&args.ip, "8081");
     audio.rescan();
 
+    let tcp_listener = TcpListener::bind("127.0.0.1:3141").await?;
+
     loop {
-        let button_press = panel.recv().await.unwrap();
-        handle_buttonpress(&mut audio, &light, button_press);
+        tokio::select! {
+            button_press = panel.recv() => {
+                handle_buttonpress(&mut audio, &light, button_press.unwrap())
+            }
+            _res = tcp_listener.accept() => {
+                println!("hoi")
+            }
+        }
     }
 }
 
