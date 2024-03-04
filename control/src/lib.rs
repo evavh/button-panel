@@ -12,7 +12,10 @@ pub mod lightcontrol;
 pub mod panel;
 pub mod tcp;
 
-use crate::{audiocontrol::ForceRewind, tcp::TcpRequest};
+use crate::{
+    audiocontrol::{AudioMode, ForceRewind},
+    tcp::TcpRequest,
+};
 
 use self::panel::Panel;
 use audiocontrol::AudioController;
@@ -61,15 +64,13 @@ fn handle_buttonpress(
     }
 }
 
-fn handle_tcp_request(audio: &mut AudioController, request: TcpRequest) {
-    use TcpRequest as R;
-
-    match request {
-        R::GoToMode(mode) => audio.go_to_mode(&mode),
-        R::PlayModePlaylist(mode, playlist) => {
-            audio.play_mode_playlist(&mode, &playlist)
+fn handle_tcp_message(audio: &mut AudioController, message: &str) {
+    match message {
+        "alarm" => {
+            audio.play_mode_playlist(&AudioMode::Music, "music_all_shuf")
         }
-    }
+        _ => (),
+    };
 }
 
 pub async fn run(mut panel: impl Panel, args: Args) -> Result<()> {
@@ -84,8 +85,8 @@ pub async fn run(mut panel: impl Panel, args: Args) -> Result<()> {
             button_press = panel.recv() => {
                 handle_buttonpress(&mut audio, &light, button_press.unwrap())
             }
-            _res = tcp_listener.accept() => {
-                println!("hoi")
+            message = tcp::wait_for_message(&tcp_listener) => {
+                handle_tcp_message(&mut audio, &message)
             }
         }
     }
