@@ -1,4 +1,5 @@
 use tokio::io::AsyncBufReadExt;
+use tokio::io::AsyncWriteExt;
 use tokio::io::AsyncReadExt;
 use tokio::io::BufReader;
 use tokio::net::TcpListener;
@@ -29,5 +30,8 @@ pub async fn wait_for_message(listener: &TcpListener) -> String {
     }
     let mut buf = vec![0u8; content_length];
     reader.read_exact(&mut buf).await.unwrap();
+
+    reader.write_all(b"HTTP/1.1 200 OK\r\n\r\n").await.unwrap();
+
     std::str::from_utf8(&buf).unwrap().to_string()
 }
