@@ -1,18 +1,10 @@
-use tokio::io::AsyncBufRead;
 use tokio::io::AsyncBufReadExt;
 use tokio::io::AsyncReadExt;
 use tokio::io::BufReader;
 use tokio::net::TcpListener;
 
-use crate::audiocontrol::AudioMode;
-
-pub enum TcpRequest {
-    GoToMode(AudioMode),
-    PlayModePlaylist(AudioMode, String),
-}
-
 pub async fn wait_for_message(listener: &TcpListener) -> String {
-    let (mut socket, addr) = listener.accept().await.unwrap();
+    let (socket, _addr) = listener.accept().await.unwrap();
     let mut reader = BufReader::new(socket);
 
     let mut line = String::new();

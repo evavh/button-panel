@@ -12,10 +12,7 @@ pub mod lightcontrol;
 pub mod panel;
 pub mod tcp;
 
-use crate::{
-    audiocontrol::{AudioMode, ForceRewind},
-    tcp::TcpRequest,
-};
+use crate::audiocontrol::AudioMode;
 
 use self::panel::Panel;
 use audiocontrol::AudioController;
