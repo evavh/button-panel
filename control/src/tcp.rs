@@ -9,13 +9,11 @@ pub async fn wait_for_message(listener: &TcpListener) -> String {
     let mut reader = BufReader::new(socket);
 
     let mut line = String::new();
-    let mut content = String::new();
     let mut content_length = 0;
 
     loop {
         line.clear();
         reader.read_line(&mut line).await.unwrap();
-        content.push_str(&line);
 
         if content_length == 0 {
             content_length = match line.strip_prefix("Content-Length: ") {

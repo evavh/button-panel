@@ -437,10 +437,10 @@ impl AudioController {
         self.mode.next();
         info!("Switching to mode {:?}", self.mode);
 
-        if self.mode == AudioMode::Meditation && !Self::is_meditation_time() {
-            self.mode.next();
-            info!("Skipping meditation");
-        }
+        // if self.mode == AudioMode::Meditation && !Self::is_meditation_time() {
+        //     self.mode.next();
+        //     info!("Skipping meditation");
+        // }
 
         let new_playlist_name = self.db.fetch_playlist_name(&self.mode);
         let new_playlist_name = if let Some(playlist_name) = new_playlist_name {
