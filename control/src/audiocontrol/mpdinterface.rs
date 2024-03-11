@@ -91,6 +91,7 @@ impl MpdInterface {
     ok_or_reconnect_one_arg! {random, value, bool, ()}
     ok_or_reconnect_one_arg! {single, value, bool, ()}
     ok_or_reconnect_one_arg! {consume, value, bool, ()}
+    ok_or_reconnect_one_arg! {playlist, name, &str, Vec<Song>}
 
     pub(crate) fn load<T: Into<Range> + std::marker::Copy>(
         &mut self,
@@ -116,5 +117,10 @@ impl MpdInterface {
         debug!("IOError or ParseError, reconnecting...");
         self.client = mpdrs::Client::connect(&self.ip)?;
         self.client.seek(place, pos)
+    }
+
+
+    pub(crate) fn playlist_exists(&mut self, playlist_name: &str) -> bool {
+        self.playlist(playlist_name).is_ok()
     }
 }

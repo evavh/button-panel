@@ -442,13 +442,19 @@ impl AudioController {
         //     info!("Skipping meditation");
         // }
 
+        // Check if a playlist is stored in the db, and still exists
         let new_playlist_name = self.db.fetch_playlist_name(&self.mode);
-        let new_playlist_name = if let Some(playlist_name) = new_playlist_name {
-            playlist_name
-        } else {
-            let playlist_name = self.first_playlist_for_mode().unwrap();
-            self.db.store_playlist_name(&self.mode, &playlist_name);
-            playlist_name
+        let new_playlist_name = match new_playlist_name {
+            Some(playlist_name)
+                if self.client.playlist_exists(&playlist_name) =>
+            {
+                playlist_name
+            }
+            _ => {
+                let playlist_name = self.first_playlist_for_mode().unwrap();
+                self.db.store_playlist_name(&self.mode, &playlist_name);
+                playlist_name
+            }
         };
         self.load_playlist(&new_playlist_name);
         self.store_current_mode();
@@ -458,9 +464,6 @@ impl AudioController {
 
         self.apply_settings(&self.mode.settings());
         self.apply_shuffle(&new_playlist_name);
-
-        // TODO: check if okay to not do
-        // self.play(ForceRewind::Yes);
     }
 
     fn save_playlist_if_necessary(&mut self, playlist_name: &str) {
@@ -524,7 +527,7 @@ impl AudioController {
 
     fn load_playlist(&mut self, playlist_name: &str) {
         self.client.clear().unwrap();
-        self.client.load(playlist_name, ..).unwrap();
+        self.client.load(playlist_name, ..).expect("Should exist");
     }
 
     fn load_position(&mut self, position: Option<db::Position>) {
