@@ -1,6 +1,6 @@
 #![allow(clippy::enum_glob_use)]
 
-use std::fmt;
+use std::{fmt, thread};
 use std::time::Duration;
 
 use mpdrs::error::Error;
@@ -317,6 +317,7 @@ impl AudioController {
         match self.client.prev() {
             Ok(_) => (),
             Err(Error::Server(server_error)) => {
+                info!("Ignoring error during prev: {server_error}");
                 assert!(
                     server_error.detail == "Not playing",
                     "Unexpected ServerError: {server_error}"
@@ -324,7 +325,7 @@ impl AudioController {
             }
             Err(other_error) => panic!("Unexpected error: {other_error}"),
         };
-        self.play(ForceRewind::No);
+        // self.play(ForceRewind::No);
     }
 
     #[instrument]
@@ -603,6 +604,7 @@ impl AudioController {
             Ok(()) => (),
             Err(e) => println!("{e}"),
         };
+        thread::sleep(Duration::from_millis(1000));
         self.previous();
         self.play(ForceRewind::No);
     }
