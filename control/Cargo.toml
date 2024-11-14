@@ -7,7 +7,7 @@ edition = "2021"
 
 [dependencies]
 clap = { version = "3.1", features = ["derive"] }
-color-eyre = "0.6"
+color-eyre = "0.6.3"
 sudo = "0.6"
 mpdrs = { git = "https://github.com/SimonPersson/mpdrs", rev = "785e54" }
 sled = "0.34"
@@ -15,10 +15,8 @@ tokio-serial = "5.4.3"
 tokio = { version = "^1.8", features = ["macros", "rt-multi-thread", "process", "time", "fs", "io-util", "net"] }
 tokio-util = { version = "0.7", features = ["codec"] }
 bytes = "1"
-futures = "0.3"
+futures = { workspace = true }
 async-trait = "0.1.56"
-
-protocol = { git = "https://github.com/evavh/button-panel" }
 
 tracing = { version = "0.1" }
 tracing-error = "0.2"
@@ -29,3 +27,8 @@ reqwest = { version = "0.11", features = ["rustls-tls"], default-features = fals
 
 dbstruct = "0.1"
 serde = "1.0"
+
+data-server = { git = "https://github.com/dvdsk/HomeAutomation" }
+ha-protocol = { workspace = true }
+
+protocol = { workspace = true }

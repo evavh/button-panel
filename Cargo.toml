@@ -1,0 +1,16 @@
+[workspace]
+members = [
+	"panel",
+	"control",
+	"protocol",
+]
+resolver = "2"
+
+[workspace.dependencies]
+defmt = "0.3"
+defmt-rtt = "0.3"
+futures = { version = "0.3.17", default-features = false, features = ["async-await"] }
+
+ha-protocol = { package = "protocol", git = "https://github.com/dvdsk/HomeAutomation" }
+
+protocol = { path = "protocol" }

@@ -2,5 +2,4 @@
 **/database/
 **/test_db*/
 **/boom
-**/Cargo.lock
 **/*.backup
