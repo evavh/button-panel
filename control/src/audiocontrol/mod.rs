@@ -1,7 +1,7 @@
 #![allow(clippy::enum_glob_use)]
 
-use std::{fmt, thread};
 use std::time::Duration;
+use std::{fmt, thread};
 
 use mpdrs::error::Error;
 use mpdrs::status::State;
@@ -604,8 +604,15 @@ impl AudioController {
             Ok(()) => (),
             Err(e) => println!("{e}"),
         };
-        thread::sleep(Duration::from_millis(1000));
+        thread::sleep(Duration::from_millis(10000));
         self.previous();
+        thread::sleep(Duration::from_millis(10000));
         self.play(ForceRewind::No);
+    }
+
+    pub(crate) fn insert_next(&mut self, song_path: &str) {
+        if let Ok(id) = self.client.push(song_path) {
+            let _ = self.client.prioid(id, 128);
+        };
     }
 }

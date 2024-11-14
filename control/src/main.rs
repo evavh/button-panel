@@ -11,8 +11,7 @@ async fn main() -> Result<()> {
     let args = control::Args::parse();
 
     if args.setup {
-        panel::setup_udev_access()
-            .wrap_err("Could not set up udev rules")?;
+        panel::setup_udev_access().wrap_err("Could not set up udev rules")?;
         return Ok(());
     }
 

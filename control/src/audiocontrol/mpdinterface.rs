@@ -92,6 +92,7 @@ impl MpdInterface {
     ok_or_reconnect_one_arg! {single, value, bool, ()}
     ok_or_reconnect_one_arg! {consume, value, bool, ()}
     ok_or_reconnect_one_arg! {playlist, name, &str, Vec<Song>}
+    ok_or_reconnect_one_arg! {push, path, &str, u32}
 
     pub(crate) fn load<T: Into<Range> + std::marker::Copy>(
         &mut self,
@@ -117,6 +118,17 @@ impl MpdInterface {
         debug!("IOError or ParseError, reconnecting...");
         self.client = mpdrs::Client::connect(&self.ip)?;
         self.client.seek(place, pos)
+    }
+
+    pub(crate) fn prioid(&mut self, id: u32, prio: u8) -> Result<()> {
+        match self.client.prioid(id, prio) {
+            Err(Error::Io(_) | Error::Parse(_)) => (),
+            other => return other,
+        };
+
+        debug!("IOError or ParseError, reconnecting...");
+        self.client = mpdrs::Client::connect(&self.ip)?;
+        self.client.prioid(id, prio)
     }
 
 

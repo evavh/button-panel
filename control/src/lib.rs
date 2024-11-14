@@ -2,9 +2,10 @@
 #![allow(clippy::missing_panics_doc)]
 #![allow(clippy::missing_errors_doc)]
 
+use std::{sync::Arc, time::Duration};
+
 use clap::Parser;
-use color_eyre::Result;
-use tokio::net::TcpListener;
+use tokio::{net::TcpListener, sync::Mutex};
 use tracing::{instrument, warn};
 
 pub mod audiocontrol;
@@ -18,6 +19,9 @@ use self::panel::Panel;
 use audiocontrol::AudioController;
 use lightcontrol::LightController;
 use protocol::ButtonPress;
+
+const ALARM_DELAY_MINS: u64 = 7;
+const ALARM_SOUND_PATH: &str = "relaxing-guitar-loop-v5.m4a";
 
 #[derive(Parser, Debug, Default)]
 #[clap(author, version, about, long_about = None)]
@@ -61,31 +65,61 @@ fn handle_buttonpress(
     }
 }
 
-fn handle_tcp_message(audio: &mut AudioController, message: &str) {
+async fn handle_tcp_message(
+    audio_mutex: &Mutex<AudioController>,
+    message: &str,
+) {
     match message {
         "alarm" => {
-            audio.play_mode_playlist(&AudioMode::Music, "music_all_shuf")
+            let mut audio = audio_mutex.lock().await;
+            audio.play_mode_playlist(&AudioMode::Music, "music_all_shuf");
+
+            drop(audio);
+            tokio::time::sleep(Duration::from_secs(60 * ALARM_DELAY_MINS))
+                .await;
+
+            let mut audio = audio_mutex.lock().await;
+            audio.insert_next(ALARM_SOUND_PATH);
         }
         _ => (),
     };
 }
 
-pub async fn run(mut panel: impl Panel, args: Args) -> Result<()> {
-    let mut audio = AudioController::new(&args.ip, "6600");
+pub async fn run(panel: impl Panel + Send + 'static, args: Args) -> ! {
+    let audio = Arc::new(Mutex::new(AudioController::new(&args.ip, "6600")));
     let light = LightController::new(&args.ip, "8081");
-    audio.rescan();
+    audio.lock().await.rescan();
 
-    let tcp_listener = TcpListener::bind("127.0.0.1:3141").await?;
+    let tcp_listener = TcpListener::bind("127.0.0.1:3141").await.unwrap();
 
+    let buttons = buttonpress_task(panel, audio.clone(), light);
+    let tcp = tcp_task(tcp_listener, audio);
+    tokio::task::spawn(buttons);
+    tokio::task::spawn(tcp);
+
+    let () = std::future::pending().await;
+    unreachable!();
+}
+
+async fn tcp_task(
+    tcp_listener: TcpListener,
+    audio: Arc<Mutex<AudioController>>,
+) -> ! {
     loop {
-        tokio::select! {
-            button_press = panel.recv() => {
-                handle_buttonpress(&mut audio, &light, button_press.unwrap())
-            }
-            message = tcp::wait_for_message(&tcp_listener) => {
-                handle_tcp_message(&mut audio, &message)
-            }
-        }
+        let message = tcp::wait_for_message(&tcp_listener).await;
+        handle_tcp_message(&audio, &message).await;
+    }
+}
+
+async fn buttonpress_task(
+    mut panel: impl Panel,
+    audio: Arc<Mutex<AudioController>>,
+    light: LightController,
+) -> ! {
+    loop {
+        let button_press = panel.recv().await;
+        let mut audio = audio.lock().await;
+        handle_buttonpress(&mut audio, &light, button_press.unwrap());
     }
 }
 
