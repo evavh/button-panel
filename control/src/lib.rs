@@ -2,14 +2,18 @@
 #![allow(clippy::missing_panics_doc)]
 #![allow(clippy::missing_errors_doc)]
 
-use std::{sync::Arc, time::Duration};
+use std::{
+    net::{IpAddr, SocketAddr},
+    str::FromStr,
+    sync::Arc,
+    time::Duration,
+};
 
 use clap::Parser;
+use data_server::api::data_source::reconnecting::Client;
 use tokio::{net::TcpListener, sync::Mutex};
-use tracing::{instrument, warn};
 
 pub mod audiocontrol;
-pub mod lightcontrol;
 pub mod panel;
 pub mod tcp;
 
@@ -17,11 +21,13 @@ use crate::audiocontrol::AudioMode;
 
 use self::panel::Panel;
 use audiocontrol::AudioController;
-use lightcontrol::LightController;
-use protocol::ButtonPress;
+use button_protocol::ButtonPress;
 
 const ALARM_DELAY_MINS: u64 = 7;
 const ALARM_SOUND_PATH: &str = "relaxing-guitar-loop-v5.m4a";
+
+const DATA_SERVER_IP: &str = "192.168.1.43";
+const DATA_SERVER_PORT: u16 = 0;
 
 #[derive(Parser, Debug, Default)]
 #[clap(author, version, about, long_about = None)]
@@ -34,10 +40,9 @@ pub struct Args {
     pub ip: String,
 }
 
-#[instrument]
-fn handle_buttonpress(
+async fn handle_buttonpress(
     audio: &mut AudioController,
-    light: &LightController,
+    data_server: &Client,
     button_press: ButtonPress,
 ) {
     use audiocontrol::AudioMode::*;
@@ -56,12 +61,8 @@ fn handle_buttonpress(
         (_, Long(TopRight)) => audio.next_playlist(),
         (_, Long(TopMiddle)) => audio.next_mode(),
 
-        (_, Short(BottomLeft)) => light.off(),
-        (_, Long(BottomLeft)) => light.evening_on(),
-        (_, Short(BottomMiddle)) => light.time_based_light(),
-        (_, Long(BottomMiddle)) => light.early_evening_on(),
-        (_, Short(BottomRight)) => light.override_light(),
-        (_, Long(BottomRight)) => light.day_on(),
+        (_, _b) => todo!(),
+        // (_, b) => data_server.send_reading(b.into()).await,
     }
 }
 
@@ -87,12 +88,17 @@ async fn handle_tcp_message(
 
 pub async fn run(panel: impl Panel + Send + 'static, args: Args) -> ! {
     let audio = Arc::new(Mutex::new(AudioController::new(&args.ip, "6600")));
-    let light = LightController::new(&args.ip, "8081");
     audio.lock().await.rescan();
+
+    let addr = SocketAddr::new(
+        IpAddr::from_str(DATA_SERVER_IP).expect("Valid const"),
+        DATA_SERVER_PORT,
+    );
+    let data_server = Client::new(addr, Vec::new());
 
     let tcp_listener = TcpListener::bind("127.0.0.1:3141").await.unwrap();
 
-    let buttons = buttonpress_task(panel, audio.clone(), light);
+    let buttons = buttonpress_task(panel, audio.clone(), data_server);
     let tcp = tcp_task(tcp_listener, audio);
     tokio::task::spawn(buttons);
     tokio::task::spawn(tcp);
@@ -114,12 +120,13 @@ async fn tcp_task(
 async fn buttonpress_task(
     mut panel: impl Panel,
     audio: Arc<Mutex<AudioController>>,
-    light: LightController,
+    data_server: Client,
 ) -> ! {
     loop {
         let button_press = panel.recv().await;
         let mut audio = audio.lock().await;
-        handle_buttonpress(&mut audio, &light, button_press.unwrap());
+        handle_buttonpress(&mut audio, &data_server, button_press.unwrap())
+            .await;
     }
 }
 
