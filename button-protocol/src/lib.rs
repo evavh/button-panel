@@ -1,5 +1,6 @@
 #![no_std]
 use defmt::Format;
+use ha_protocol::{small_bedroom, Reading};
 
 #[derive(Format, Clone, Copy, PartialEq, Eq, Debug)]
 #[repr(u8)]
@@ -35,6 +36,13 @@ impl Button {
 pub enum ButtonPress {
     Short(Button),
     Long(Button),
+}
+
+impl From<ButtonPress> for Reading {
+    fn from(value: ButtonPress) -> Self {
+        let button = todo!();
+        Reading::SmallBedroom(small_bedroom::Reading::ButtonPanel(button))
+    }
 }
 
 impl ButtonPress {

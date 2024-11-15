@@ -2,7 +2,7 @@
 members = [
 	"panel",
 	"control",
-	"protocol",
+	"button-protocol",
 ]
 resolver = "2"
 
@@ -13,4 +13,4 @@ futures = { version = "0.3.17", default-features = false, features = ["async-awa
 
 ha-protocol = { package = "protocol", git = "https://github.com/dvdsk/HomeAutomation" }
 
-protocol = { path = "protocol" }
+button-protocol = { path = "button-protocol" }

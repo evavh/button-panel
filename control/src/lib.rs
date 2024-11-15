@@ -41,7 +41,7 @@ fn handle_buttonpress(
     button_press: ButtonPress,
 ) {
     use audiocontrol::AudioMode::*;
-    use protocol::{Button::*, ButtonPress::*};
+    use button_protocol::{Button::*, ButtonPress::*};
 
     match (&audio.mode, button_press) {
         (Music | Meditation, Short(TopLeft)) => audio.previous(),

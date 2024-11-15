@@ -30,7 +30,7 @@ use embassy_stm32::gpio::{Input, Pin, Pull};
 use embassy_stm32::usart;
 use embassy_stm32::{Peripheral, Peripherals};
 
-use protocol::{Button, ButtonPress};
+use button_protocol::{Button, ButtonPress};
 
 type UsartMutex<'a> = Mutex<NoopRawMutex, Uart<'a, USART1>>;
 
@@ -58,7 +58,7 @@ type UsartMutex<'a> = Mutex<NoopRawMutex, Uart<'a, USART1>>;
 //     usart: &UsartMutex<'_>,
 //     pin: impl Peripheral<P = T> + 'd,
 //     ch: impl Peripheral<P = T::ExtiChannel> + 'd,
-//     name: protocol::Button,
+//     name: button_protocol::Button,
 // ) {
 //     let button = Input::new(pin, Pull::Down);
 //     let mut button = ExtiInput::new(button, ch);

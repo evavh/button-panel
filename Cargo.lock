@@ -203,6 +203,14 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "79296716171880943b8470b5f8d03aa55eb2e645a4874bdbb28adb49162e012c"
 
 [[package]]
+name = "button-protocol"
+version = "0.1.0"
+dependencies = [
+ "defmt",
+ "protocol",
+]
+
+[[package]]
 name = "bxcan"
 version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -379,6 +387,7 @@ name = "control"
 version = "0.1.0"
 dependencies = [
  "async-trait",
+ "button-protocol",
  "bytes",
  "chrono",
  "clap 3.2.25",
@@ -387,8 +396,7 @@ dependencies = [
  "dbstruct",
  "futures",
  "mpdrs",
- "protocol 0.1.0",
- "protocol 0.1.0 (git+https://github.com/dvdsk/HomeAutomation)",
+ "protocol",
  "reqwest",
  "serde",
  "sled",
@@ -557,7 +565,7 @@ dependencies = [
  "futures",
  "futures-concurrency",
  "governor",
- "protocol 0.1.0 (git+https://github.com/dvdsk/HomeAutomation)",
+ "protocol",
  "rpc",
  "serde",
  "slotmap",
@@ -1899,6 +1907,7 @@ checksum = "c1b04fb49957986fdce4d6ee7a65027d55d4b6d2265e5848bbb507b58ccfdb6f"
 name = "panel"
 version = "0.1.0"
 dependencies = [
+ "button-protocol",
  "cortex-m",
  "cortex-m-rt",
  "defmt",
@@ -1913,7 +1922,6 @@ dependencies = [
  "heapless 0.7.17",
  "nb 1.1.0",
  "panic-probe",
- "protocol 0.1.0",
  "usb-device",
  "usbd-serial",
 ]
@@ -2092,14 +2100,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f139b0662de085916d1fb67d2b4169d1addddda1919e696f3252b740b629986e"
 dependencies = [
  "unicode-ident",
-]
-
-[[package]]
-name = "protocol"
-version = "0.1.0"
-dependencies = [
- "defmt",
- "protocol 0.1.0 (git+https://github.com/dvdsk/HomeAutomation)",
 ]
 
 [[package]]

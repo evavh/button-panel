@@ -12,7 +12,7 @@ use futures::stream::StreamExt;
 use tokio_serial::{SerialPortBuilderExt, SerialStream};
 use tokio_util::codec::{Decoder, Encoder, Framed};
 
-use protocol::{Button, ButtonPress};
+use button_protocol::{Button, ButtonPress};
 
 struct LineCodec;
 
