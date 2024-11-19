@@ -29,7 +29,7 @@ cross build --target=armv7-unknown-linux-gnueabihf --release
 echo "RSyncing..."
 rsync button_panel$SUFFIX.service $SERVER_ADDR:/tmp/
 rsync -vh --progress \
-  target/armv7-unknown-linux-gnueabihf/release/control \
+  ../target/armv7-unknown-linux-gnueabihf/release/control \
   $SERVER_ADDR:/tmp/
 
 # sets up/updates the systemd service and places the binary
