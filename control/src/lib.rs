@@ -27,7 +27,7 @@ const ALARM_DELAY_MINS: u64 = 7;
 const ALARM_SOUND_PATH: &str = "relaxing-guitar-loop-v5.m4a";
 
 const DATA_SERVER_IP: &str = "192.168.1.43";
-const DATA_SERVER_PORT: u16 = 0;
+const DATA_SERVER_PORT: u16 = 1235;
 
 #[derive(Parser, Debug, Default)]
 #[clap(author, version, about, long_about = None)]
@@ -42,7 +42,7 @@ pub struct Args {
 
 async fn handle_buttonpress(
     audio: &mut AudioController,
-    data_server: &Client,
+    data_server: &mut Client,
     button_press: ButtonPress,
 ) {
     use audiocontrol::AudioMode::*;
@@ -61,8 +61,11 @@ async fn handle_buttonpress(
         (_, Long(TopRight)) => audio.next_playlist(),
         (_, Long(TopMiddle)) => audio.next_mode(),
 
-        (_, _b) => todo!(),
-        // (_, b) => data_server.send_reading(b.into()).await,
+        (_, b) => {
+            println!("Sending reading for {b:?} to data server");
+            data_server.send_reading(b.into()).await;
+            println!("Done sending reading");
+        }
     }
 }
 
@@ -120,12 +123,12 @@ async fn tcp_task(
 async fn buttonpress_task(
     mut panel: impl Panel,
     audio: Arc<Mutex<AudioController>>,
-    data_server: Client,
+    mut data_server: Client,
 ) -> ! {
     loop {
         let button_press = panel.recv().await;
         let mut audio = audio.lock().await;
-        handle_buttonpress(&mut audio, &data_server, button_press.unwrap())
+        handle_buttonpress(&mut audio, &mut data_server, button_press.unwrap())
             .await;
     }
 }
