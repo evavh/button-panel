@@ -353,6 +353,7 @@ impl AudioController {
             let random = self.mode.settings().random;
             self.client.random(random).unwrap();
         }
+        self.client.pause().unwrap();
     }
 
     #[instrument]
@@ -405,8 +406,8 @@ impl AudioController {
 
         let now = Local::now().time();
         debug!("Checking if it is meditation time: now is {:?}", now);
-        let start = NaiveTime::from_hms(START_HOUR, START_MIN, 0);
-        let end = NaiveTime::from_hms(END_HOUR, END_MIN, 0);
+        let start = NaiveTime::from_hms_opt(START_HOUR, START_MIN, 0).unwrap();
+        let end = NaiveTime::from_hms_opt(END_HOUR, END_MIN, 0).unwrap();
 
         debug!("Meditation start time: {}, end time: {}", start, end);
         let start_sm_now = start < now;
@@ -529,6 +530,7 @@ impl AudioController {
     fn load_playlist(&mut self, playlist_name: &str) {
         self.client.clear().unwrap();
         self.client.load(playlist_name, ..).expect("Should exist");
+        self.client.pause().unwrap();
     }
 
     fn load_position(&mut self, position: Option<db::Position>) {
@@ -538,6 +540,7 @@ impl AudioController {
         } else {
             self.seek_to(0, 0);
         }
+        self.client.pause().unwrap();
     }
 
     fn seek_to(&mut self, pos_in_pl: u32, elapsed: u32) {
@@ -566,6 +569,7 @@ impl AudioController {
         self.client.random(audio_settings.random).unwrap();
         self.client.single(audio_settings.single).unwrap();
         self.client.consume(audio_settings.consume).unwrap();
+        self.client.pause().unwrap();
     }
 
     pub(crate) fn go_to_mode(&mut self, target_mode: &AudioMode) {
@@ -604,9 +608,7 @@ impl AudioController {
             Ok(()) => (),
             Err(e) => println!("{e}"),
         };
-        thread::sleep(Duration::from_millis(10000));
         self.previous();
-        thread::sleep(Duration::from_millis(10000));
         self.play(ForceRewind::No);
     }
 

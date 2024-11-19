@@ -19,7 +19,7 @@ pub mod tcp;
 
 use crate::audiocontrol::AudioMode;
 
-use self::panel::Panel;
+use self::{audiocontrol::ForceRewind, panel::Panel};
 use audiocontrol::AudioController;
 use button_protocol::ButtonPress;
 
@@ -57,9 +57,18 @@ async fn handle_buttonpress(
 
         (_, Short(TopMiddle)) => audio.toggle_playback(),
 
-        (_, Long(TopLeft)) => audio.prev_playlist(),
-        (_, Long(TopRight)) => audio.next_playlist(),
-        (_, Long(TopMiddle)) => audio.next_mode(),
+        (_, Long(TopLeft)) => {
+            audio.prev_playlist();
+            audio.play(ForceRewind::No)
+        }
+        (_, Long(TopRight)) => {
+            audio.next_playlist();
+            audio.play(ForceRewind::No)
+        }
+        (_, Long(TopMiddle)) => {
+            audio.next_mode();
+            audio.play(ForceRewind::No)
+        }
 
         (_, b) => {
             println!("Sending reading for {b:?} to data server");
