@@ -49,11 +49,11 @@ async fn handle_buttonpress(
     use button_protocol::{Button::*, ButtonPress::*};
 
     match (&audio.mode, button_press) {
-        (Music | Meditation, Short(TopLeft)) => audio.previous(),
-        (Book | Podcast, Short(TopLeft)) => audio.rewind(),
+        (Music | Singing | Meditation, Short(TopLeft)) => audio.previous(),
+        (Podcast, Short(TopLeft)) => audio.rewind(),
 
-        (Music | Meditation, Short(TopRight)) => audio.next(),
-        (Book | Podcast, Short(TopRight)) => audio.skip(),
+        (Music | Singing | Meditation, Short(TopRight)) => audio.next(),
+        (Podcast, Short(TopRight)) => audio.skip(),
 
         (_, Short(TopMiddle)) => audio.toggle_playback(),
 

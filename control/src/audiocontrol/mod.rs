@@ -1,7 +1,7 @@
 #![allow(clippy::enum_glob_use)]
 
 use std::time::Duration;
-use std::{fmt, thread};
+use std::fmt;
 
 use mpdrs::error::Error;
 use mpdrs::status::State;
@@ -35,7 +35,7 @@ struct Settings {
 #[derive(Debug, PartialEq, serde::Serialize, serde::Deserialize, Clone)]
 pub enum AudioMode {
     Music,
-    Book,
+    Singing,
     Podcast,
     Meditation,
 }
@@ -44,8 +44,8 @@ impl AudioMode {
     fn next(&mut self) {
         use AudioMode::*;
         *self = match self {
-            Music => Book,
-            Book => Podcast,
+            Music => Singing,
+            Singing => Podcast,
             Podcast => Meditation,
             Meditation => Music,
         }
@@ -55,7 +55,7 @@ impl AudioMode {
         use AudioMode::*;
         match self {
             Music => "music_",
-            Book => "book_",
+            Singing => "singing_",
             Podcast => "podcast_",
             Meditation => "meditation_",
         }
@@ -64,8 +64,8 @@ impl AudioMode {
     fn settings(&self) -> Settings {
         use AudioMode::*;
         match self {
-            Music => Settings::default(),
-            Book | Podcast => Settings {
+            Music | Singing => Settings::default(),
+            Podcast => Settings {
                 consume: true,
                 save_playlist: true,
                 ..Settings::default()
@@ -81,7 +81,7 @@ impl AudioMode {
         use AudioMode::*;
         match self {
             Music => [1],
-            Book => [2],
+            Singing => [2],
             Podcast => [3],
             Meditation => [4],
         }
@@ -91,7 +91,7 @@ impl AudioMode {
         use AudioMode::*;
         match bytes {
             &[1] => Music,
-            &[2] => Book,
+            &[2] => Singing,
             &[3] => Podcast,
             &[4] => Meditation,
             other => panic!("Unexpected serialized mode: {:?}", other),
@@ -204,10 +204,10 @@ impl AudioController {
         let last_played = self.db.fetch_last_played(&current_playlist);
 
         match (&self.mode, last_played) {
-            (Book | Podcast, Some(last_played)) => {
+            (Podcast, Some(last_played)) => {
                 self.rewind_by(Self::auto_rewind_time(last_played));
             }
-            (Music | Meditation, Some(last_played)) => {
+            (Music | Singing | Meditation, Some(last_played)) => {
                 if let (Some(length), Some(position)) =
                     (self.get_song_length(), self.get_elapsed())
                 {
