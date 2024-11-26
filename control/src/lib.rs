@@ -24,7 +24,7 @@ use audiocontrol::AudioController;
 use button_protocol::ButtonPress;
 
 const ALARM_DELAY_MINS: u64 = 7;
-const ALARM_SOUND_PATH: &str = "relaxing-guitar-loop-v5.m4a";
+const ALARM_SOUND_PATH: &str = "alarm-with-warning.ogg";
 
 const DATA_SERVER_IP: &str = "192.168.1.43";
 const DATA_SERVER_PORT: u16 = 1235;
