@@ -84,10 +84,11 @@ impl Panel for Usart {
 
 pub struct Mock {
     actions: Vec<ButtonPress>,
+    sleep_s: u64,
 }
 
 impl Mock {
-    pub fn try_connect() -> Result<Self> {
+    pub fn full_test() -> Result<Self> {
         let mut actions = vec![
             ButtonPress::Short(Button::BottomMiddle), //evening light
             ButtonPress::Short(Button::TopMiddle),    //play (Music)
@@ -97,14 +98,21 @@ impl Mock {
             ButtonPress::Long(Button::TopLeft),       //prev playlist (Music)
         ];
         actions.reverse();
-        Ok(Mock { actions })
+        Ok(Mock { actions, sleep_s: 2 })
+    }
+
+    pub fn bottom_left_only() -> Result<Self> {
+        let actions = vec![
+            ButtonPress::Short(Button::BottomLeft),
+        ];
+        Ok(Mock { actions, sleep_s: 0 })
     }
 }
 
 #[async_trait]
 impl Panel for Mock {
     async fn recv(&mut self) -> Result<ButtonPress, &'static str> {
-        thread::sleep(time::Duration::from_secs(2));
+        thread::sleep(time::Duration::from_secs(self.sleep_s));
         self.actions.pop().ok_or("No more actions in MockPanel")
     }
 }

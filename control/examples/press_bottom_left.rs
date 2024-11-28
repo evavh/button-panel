@@ -3,7 +3,7 @@ use color_eyre::Result;
 
 use control::panel;
 
-#[tokio::test]
+#[tokio::main]
 async fn main() -> Result<()> {
     color_eyre::install()?;
     control::setup_tracing();
@@ -14,7 +14,7 @@ async fn main() -> Result<()> {
     };
 
     let panel =
-        panel::Mock::full_test().wrap_err("Could not connect to Panel")?;
+        panel::Mock::bottom_left_only().wrap_err("Could not connect to Panel")?;
 
     control::run(panel, args).await
 }

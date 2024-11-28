@@ -28,7 +28,7 @@ const ALARM_DELAY_MINS: u64 = 7;
 const ALARM_SOUND_PATH: &str = "alarm-with-warning.ogg";
 
 const DATA_SERVER_IP: &str = "192.168.1.43";
-const DATA_SERVER_PORT: u16 = 1235;
+const DATA_SERVER_PORT: u16 = 1234;
 
 #[derive(Parser, Debug, Default)]
 #[clap(author, version, about, long_about = None)]

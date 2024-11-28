@@ -11,6 +11,7 @@ defmt = "0.3"
 defmt-rtt = "0.3"
 futures = { version = "0.3.17", default-features = false, features = ["async-await"] }
 
+data-server = { git = "https://github.com/dvdsk/HomeAutomation" }
 ha-protocol = { package = "protocol", git = "https://github.com/dvdsk/HomeAutomation" }
 
 button-protocol = { path = "button-protocol" }
