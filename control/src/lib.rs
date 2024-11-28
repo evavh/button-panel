@@ -12,6 +12,7 @@ use std::{
 use clap::Parser;
 use data_server::api::data_source::reconnecting::Client;
 use tokio::{net::TcpListener, sync::Mutex};
+use tracing::error;
 
 pub mod audiocontrol;
 pub mod panel;
@@ -42,7 +43,7 @@ pub struct Args {
 
 async fn handle_buttonpress(
     audio: &mut AudioController,
-    data_server: &mut Client,
+    data_server: &mut Option<Client>,
     button_press: ButtonPress,
 ) {
     use audiocontrol::AudioMode::*;
@@ -71,9 +72,13 @@ async fn handle_buttonpress(
         }
 
         (_, b) => {
-            println!("Sending reading for {b:?} to data server");
-            data_server.send_reading(b.into()).await;
-            println!("Done sending reading");
+            if let Some(data_server) = data_server {
+                println!("Sending reading for {b:?} to data server");
+                if let Err(err) = data_server.send_reading(b.into()).await {
+                    error!("Error while sending button to data server: {err}");
+                }
+                println!("Done sending reading");
+            }
         }
     }
 }
@@ -102,15 +107,9 @@ pub async fn run(panel: impl Panel + Send + 'static, args: Args) -> ! {
     let audio = Arc::new(Mutex::new(AudioController::new(&args.ip, "6600")));
     audio.lock().await.rescan();
 
-    let addr = SocketAddr::new(
-        IpAddr::from_str(DATA_SERVER_IP).expect("Valid const"),
-        DATA_SERVER_PORT,
-    );
-    let data_server = Client::new(addr, Vec::new());
-
     let tcp_listener = TcpListener::bind("127.0.0.1:3141").await.unwrap();
 
-    let buttons = buttonpress_task(panel, audio.clone(), data_server);
+    let buttons = buttonpress_task(panel, audio.clone());
     let tcp = tcp_task(tcp_listener, audio);
     tokio::task::spawn(buttons);
     tokio::task::spawn(tcp);
@@ -132,8 +131,17 @@ async fn tcp_task(
 async fn buttonpress_task(
     mut panel: impl Panel,
     audio: Arc<Mutex<AudioController>>,
-    mut data_server: Client,
 ) -> ! {
+    let addr = SocketAddr::new(
+        IpAddr::from_str(DATA_SERVER_IP).expect("Valid const"),
+        DATA_SERVER_PORT,
+    );
+
+    let mut data_server = Client::new(addr, Vec::new(), None)
+        .await
+        .inspect_err(|err| error!("Invalid client address: {err}"))
+        .ok();
+
     loop {
         let button_press = panel.recv().await;
         let mut audio = audio.lock().await;
