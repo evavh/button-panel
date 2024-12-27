@@ -608,7 +608,7 @@ impl AudioController {
             Ok(()) => (),
             Err(e) => println!("{e}"),
         };
-        self.previous();
+        self.client.rewind(0).unwrap();
         self.play(ForceRewind::No);
     }
 
