@@ -32,3 +32,4 @@ data-server = { workspace = true }
 ha-protocol = { workspace = true }
 
 button-protocol = { workspace = true }
+rand = "0.8.5"

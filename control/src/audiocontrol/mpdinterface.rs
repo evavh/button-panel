@@ -86,6 +86,7 @@ impl MpdInterface {
 
     ok_or_reconnect_one_arg! {rewind, pos, u32, ()}
     ok_or_reconnect_one_arg! {pl_remove, name, &str, ()}
+    ok_or_reconnect_one_arg! {pl_clear, name, &str, ()}
     ok_or_reconnect_one_arg! {save, name, &str, ()}
     ok_or_reconnect_one_arg! {repeat, value, bool, ()}
     ok_or_reconnect_one_arg! {random, value, bool, ()}
@@ -119,6 +120,17 @@ impl MpdInterface {
         debug!("IOError or ParseError, reconnecting...");
         self.client = mpdrs::Client::connect(&self.ip)?;
         self.client.load(name, range)
+    }
+
+    pub(crate) fn pl_push(&mut self, pl_name: &str, song: &Song) -> Result<()> {
+        match self.client.pl_push(pl_name, &song.file) {
+            Err(Error::Io(_) | Error::Parse(_)) => (),
+            other => return other,
+        };
+
+        debug!("IOError or ParseError, reconnecting...");
+        self.client = mpdrs::Client::connect(&self.ip)?;
+        self.client.pl_push(pl_name, &song.file)
     }
 
     pub(crate) fn seek(&mut self, place: u32, pos: u32) -> Result<()> {

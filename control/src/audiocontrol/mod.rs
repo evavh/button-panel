@@ -1,7 +1,7 @@
 #![allow(clippy::enum_glob_use)]
 
-use std::time::Duration;
 use std::fmt;
+use std::time::Duration;
 
 use mpdrs::error::Error;
 use mpdrs::status::State;
@@ -13,6 +13,7 @@ use db::Db;
 
 mod mpdinterface;
 use mpdinterface::MpdInterface;
+use rand::seq::SliceRandom;
 use tracing::{debug, info, instrument};
 
 #[derive(Debug)]
@@ -608,8 +609,26 @@ impl AudioController {
             Ok(()) => (),
             Err(e) => println!("{e}"),
         };
-        self.client.rewind(0).unwrap();
+        self.load_playlist(playlist);
+        self.load_position(None);
         self.play(ForceRewind::No);
+    }
+
+    pub(crate) fn create_wakeup_playlist(&mut self, pl_name: &str) {
+        let slow_songs = self.client.playlist("slow").unwrap();
+        let mut dance_songs = self.client.playlist("dance").unwrap();
+
+        self.client.pl_clear(pl_name).unwrap();
+
+        let mut rng = rand::thread_rng();
+        dance_songs.shuffle(&mut rng);
+
+        let to_add = slow_songs
+            .choose_multiple(&mut rng, 2)
+            .chain(dance_songs.iter());
+        for song in to_add {
+            self.client.pl_push(pl_name, song).unwrap();
+        }
     }
 
     pub(crate) fn insert_next(&mut self, song_path: &str) {

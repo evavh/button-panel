@@ -90,14 +90,10 @@ async fn handle_tcp_message(
     match message {
         "alarm" => {
             let mut audio = audio_mutex.lock().await;
-            audio.play_mode_playlist(&AudioMode::Music, "music_all_shuf");
 
-            drop(audio);
-            tokio::time::sleep(Duration::from_secs(60 * ALARM_DELAY_MINS))
-                .await;
-
-            let mut audio = audio_mutex.lock().await;
-            audio.insert_next(ALARM_SOUND_PATH);
+            let pl_name = "music_wakeup";
+            audio.create_wakeup_playlist(pl_name);
+            audio.play_mode_playlist(&AudioMode::Music, pl_name);
         }
         _ => (),
     };
