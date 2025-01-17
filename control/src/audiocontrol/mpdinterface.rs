@@ -6,7 +6,7 @@ use mpdrs::song::Range;
 use mpdrs::{Playlist, Song, Status};
 use tracing::{debug, instrument};
 
-pub(crate) struct MpdInterface {
+pub(super) struct MpdInterface {
     ip: String,
     client: mpdrs::Client,
 }

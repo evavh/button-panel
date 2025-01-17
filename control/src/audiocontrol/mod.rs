@@ -107,6 +107,8 @@ pub enum ForceRewind {
 }
 
 pub struct AudioController {
+    ip: String,
+    port: String,
     client: MpdInterface,
     db: Db,
     pub(crate) mode: AudioMode,
@@ -125,6 +127,8 @@ impl AudioController {
         let address = format!("{}:{}", ip, port);
         let client = MpdInterface::connect(&address).unwrap();
         let mut controller = AudioController {
+            ip: ip.to_owned(),
+            port: port.to_owned(),
             client,
             db: Db::open("database"),
             mode: AudioMode::Music,
@@ -139,6 +143,12 @@ impl AudioController {
 
         controller.playing();
         controller
+    }
+
+    pub fn reconnect(&mut self) -> Result<(), Box<dyn std::error::Error>> {
+        let address = format!("{}:{}", self.ip, self.port);
+        self.client = MpdInterface::connect(&address)?;
+        Ok(())
     }
 
     pub fn rescan(&mut self) {
@@ -599,35 +609,46 @@ impl AudioController {
         Ok(())
     }
 
-    pub(crate) fn play_mode_playlist(
+    pub(crate) async fn play_mode_playlist(
         &mut self,
         mode: &AudioMode,
         playlist: &str,
     ) {
         self.go_to_mode(mode);
+        tokio::time::sleep(Duration::from_millis(100)).await;
         match self.go_to_playlist(playlist) {
             Ok(()) => (),
             Err(e) => println!("{e}"),
         };
+        tokio::time::sleep(Duration::from_millis(100)).await;
         self.load_playlist(playlist);
+        tokio::time::sleep(Duration::from_millis(100)).await;
         self.load_position(None);
+        tokio::time::sleep(Duration::from_millis(100)).await;
         self.play(ForceRewind::No);
     }
 
-    pub(crate) fn create_wakeup_playlist(&mut self, pl_name: &str) {
+    pub(crate) async fn create_wakeup_playlist(&mut self, pl_name: &str) {
         let slow_songs = self.client.playlist("slow").unwrap();
+        tokio::time::sleep(Duration::from_millis(100)).await;
         let mut dance_songs = self.client.playlist("dance").unwrap();
+        tokio::time::sleep(Duration::from_millis(100)).await;
 
         self.client.pl_clear(pl_name).unwrap();
+        tokio::time::sleep(Duration::from_millis(100)).await;
 
-        let mut rng = rand::thread_rng();
-        dance_songs.shuffle(&mut rng);
+        let to_add = {
+            let mut rng = rand::thread_rng();
+            dance_songs.shuffle(&mut rng);
 
-        let to_add = slow_songs
-            .choose_multiple(&mut rng, 2)
-            .chain(dance_songs.iter());
+            slow_songs
+                .choose_multiple(&mut rng, 2)
+                .chain(dance_songs.iter())
+        };
+
         for song in to_add {
             self.client.pl_push(pl_name, song).unwrap();
+            tokio::time::sleep(Duration::from_millis(100)).await;
         }
     }
 

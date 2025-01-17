@@ -89,11 +89,14 @@ async fn handle_tcp_message(
 ) {
     match message {
         "alarm" => {
+
             let mut audio = audio_mutex.lock().await;
+            audio.reconnect().unwrap();
+            tokio::time::sleep(Duration::from_millis(500)).await;
 
             let pl_name = "music_wakeup";
-            audio.create_wakeup_playlist(pl_name);
-            audio.play_mode_playlist(&AudioMode::Music, pl_name);
+            audio.create_wakeup_playlist(pl_name).await;
+            audio.play_mode_playlist(&AudioMode::Music, pl_name).await;
         }
         _ => (),
     };
