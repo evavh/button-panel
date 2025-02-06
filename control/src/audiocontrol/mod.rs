@@ -631,7 +631,7 @@ impl AudioController {
     pub(crate) async fn create_wakeup_playlist(&mut self, pl_name: &str) {
         let slow_songs = self.client.playlist("slow").unwrap();
         tokio::time::sleep(Duration::from_millis(100)).await;
-        let mut dance_songs = self.client.playlist("dance").unwrap();
+        let normal_songs = self.client.playlist("music_all_shuf").unwrap();
         tokio::time::sleep(Duration::from_millis(100)).await;
 
         self.client.pl_clear(pl_name).unwrap();
@@ -639,16 +639,15 @@ impl AudioController {
 
         let to_add = {
             let mut rng = rand::thread_rng();
-            dance_songs.shuffle(&mut rng);
 
             slow_songs
                 .choose_multiple(&mut rng, 2)
-                .chain(dance_songs.iter())
+                .chain(normal_songs.choose_multiple(&mut rng, 30))
         };
 
         for song in to_add {
             self.client.pl_push(pl_name, song).unwrap();
-            tokio::time::sleep(Duration::from_millis(100)).await;
+            tokio::time::sleep(Duration::from_millis(10)).await;
         }
     }
 
