@@ -641,7 +641,7 @@ impl AudioController {
             let mut rng = rand::thread_rng();
 
             slow_songs
-                .choose_multiple(&mut rng, 2)
+                .choose_multiple(&mut rng, 1)
                 .chain(normal_songs.choose_multiple(&mut rng, 30))
         };
 
