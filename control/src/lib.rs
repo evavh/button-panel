@@ -83,13 +83,9 @@ async fn handle_buttonpress(
     }
 }
 
-async fn handle_tcp_message(
-    audio_mutex: &Mutex<AudioController>,
-    message: &str,
-) {
+async fn handle_tcp_message(audio_mutex: &Mutex<AudioController>, message: &str) {
     match message {
         "alarm" => {
-
             let mut audio = audio_mutex.lock().await;
             audio.reconnect().unwrap();
             tokio::time::sleep(Duration::from_millis(500)).await;
@@ -117,20 +113,14 @@ pub async fn run(panel: impl Panel + Send + 'static, args: Args) -> ! {
     unreachable!();
 }
 
-async fn tcp_task(
-    tcp_listener: TcpListener,
-    audio: Arc<Mutex<AudioController>>,
-) -> ! {
+async fn tcp_task(tcp_listener: TcpListener, audio: Arc<Mutex<AudioController>>) -> ! {
     loop {
         let message = tcp::wait_for_message(&tcp_listener).await;
         handle_tcp_message(&audio, &message).await;
     }
 }
 
-async fn buttonpress_task(
-    mut panel: impl Panel,
-    audio: Arc<Mutex<AudioController>>,
-) -> ! {
+async fn buttonpress_task(mut panel: impl Panel, audio: Arc<Mutex<AudioController>>) -> ! {
     let addr = SocketAddr::new(
         IpAddr::from_str(DATA_SERVER_IP).expect("Valid const"),
         DATA_SERVER_PORT,
@@ -142,10 +132,12 @@ async fn buttonpress_task(
         .ok();
 
     loop {
-        let button_press = panel.recv().await;
+        let button_press = panel
+            .recv()
+            .await // TODO: crash or handle in panel not here
+            .expect("could not deserialize button press before it was send");
         let mut audio = audio.lock().await;
-        handle_buttonpress(&mut audio, &mut data_server, button_press.unwrap())
-            .await;
+        handle_buttonpress(&mut audio, &mut data_server, button_press).await;
     }
 }
 
